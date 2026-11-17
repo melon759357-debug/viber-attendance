@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using ViberAttendance.App.Services;
@@ -21,6 +22,28 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        var processPath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(processPath))
+        {
+            var handoff = AppUpdater.HandoffToInstalledCopy(processPath);
+            if (handoff == StartupHandoff.NeedsClose)
+            {
+                MessageBox.Show(
+                    "请先退出正在运行的 Viber 在线记录，再打开这个新版本。打开后会替换已安装的程序并重新启动。",
+                    "请先退出旧版本",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                Shutdown(0);
+                return;
+            }
+
+            if (handoff == StartupHandoff.Relaunched)
+            {
+                Shutdown(0);
+                return;
+            }
+        }
+
         _singleInstance = new Mutex(true, SingleInstanceName, out var isFirstInstance);
         if (!isFirstInstance)
         {
@@ -37,12 +60,29 @@ public partial class App : Application
 
         try
         {
-            var paths = ApplicationPaths.CreateDefault();
-            paths.EnsureDirectories();
-            _ = StartMenuRegistrationService.EnsureShortcut();
-            var settingsStore = new JsonSettingsStore(paths);
+            if (!string.IsNullOrWhiteSpace(processPath) &&
+                await AppUpdater.TryUpdateFromGitHubAsync(processPath).ConfigureAwait(true))
+            {
+                Shutdown(0);
+                return;
+            }
+
+            var defaultPaths = ApplicationPaths.CreateDefault();
+            defaultPaths.EnsureDirectories();
+            var settingsStore = new JsonSettingsStore(defaultPaths);
             var settings = await settingsStore.LoadAsync().ConfigureAwait(true);
             _settings = settings;
+            var paths = defaultPaths.WithDataFolder(settings.DataFolder);
+            try
+            {
+                paths.EnsureDirectories();
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                paths = defaultPaths;
+            }
+
+            _ = StartMenuRegistrationService.EnsureShortcut();
 
             var services = new ServiceCollection();
             services.AddSingleton(paths);

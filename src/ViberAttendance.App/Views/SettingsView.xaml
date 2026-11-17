@@ -83,10 +83,18 @@
                                 <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="考勤记录保存在本机数据库" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="数据保存位置" />
-                        <TextBox Margin="0,0,0,14" Text="{Binding Settings.DatabasePath, UpdateSourceTrigger=PropertyChanged}" ToolTip="SQLite 数据库文件" />
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="数据位置" />
+                        <DockPanel Margin="0,0,0,6" LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseDataFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <TextBox Text="{Binding DataFolder, UpdateSourceTrigger=PropertyChanged}" />
+                        </DockPanel>
+                        <Button Margin="0,0,0,8" HorizontalAlignment="Left" Content="恢复默认位置" Command="{Binding ResetDataFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <TextBlock Margin="0,0,0,14" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="考勤数据库和诊断日志放在这个文件夹。留空就用本机默认位置。保存后重新打开软件生效，原来的记录会复制过去。" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="导出文件夹" />
-                        <TextBox Text="{Binding Settings.ExportFolder, UpdateSourceTrigger=PropertyChanged}" ToolTip="CSV 导出文件保存位置" />
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseExportFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <TextBox Text="{Binding ExportFolder, UpdateSourceTrigger=PropertyChanged}" />
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
@@ -123,7 +131,7 @@
                             </Border>
                             <StackPanel Margin="56,0,0,0">
                                 <TextBlock Style="{StaticResource SectionTitleStyle}" Text="关于" />
-                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="Viber 在线记录 · 完全本地运行" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="打开一份更新的程序时，会替换已经安装的这一份并重新打开。记录仍留在数据位置。" />
                             </StackPanel>
                         </Grid>
                         <Button Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LinkButtonStyle}" Command="{Binding VersionClickCommand}" Content="{Binding VersionText}" />

@@ -7,7 +7,7 @@
 最终发布文件位于：
 
 ```text
-release\ViberAttendance.exe
+release-call-names\Viber在线记录.exe
 ```
 
 这是 `win-x64` 自包含单文件版本，不要求电脑预先安装 .NET Desktop Runtime。软件以当前用户权限运行，不需要管理员权限。

@@ -22,6 +22,7 @@ public sealed class AppSettings
     public int WindowMinimumWidth { get; set; } = 300;
     public int WindowMinimumHeight { get; set; } = 200;
     public int WindowDiscoveryUiaMaxNodes { get; set; } = 500;
+    public string DataFolder { get; set; } = string.Empty;
     public string DatabasePath { get; set; } = string.Empty;
     public string ExportFolder { get; set; } = string.Empty;
     public string UiLanguage { get; set; } = "zh-CN";
@@ -51,6 +52,23 @@ public sealed class AppSettings
         WindowDiscoveryUiaMaxNodes = Math.Clamp(WindowDiscoveryUiaMaxNodes, 50, 5_000);
         DatabasePath = string.IsNullOrWhiteSpace(DatabasePath) ? defaultDatabasePath : DatabasePath;
         ExportFolder = string.IsNullOrWhiteSpace(ExportFolder) ? defaultExportFolder : ExportFolder;
+        DataFolder = DataFolder.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (DataFolder.Length > 0)
+        {
+            try
+            {
+                DataFolder = Path.GetFullPath(DataFolder);
+                DatabasePath = Path.Combine(DataFolder, "Data", "attendance.db");
+                if (string.IsNullOrWhiteSpace(ExportFolder) || ExportFolder == defaultExportFolder)
+                {
+                    ExportFolder = Path.Combine(DataFolder, "Exports");
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                DataFolder = string.Empty;
+            }
+        }
         UiLanguage = string.IsNullOrWhiteSpace(UiLanguage) ? "zh-CN" : UiLanguage;
         UiTheme = UiTheme switch
         {

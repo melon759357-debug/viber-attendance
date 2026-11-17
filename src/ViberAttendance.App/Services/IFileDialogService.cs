@@ -6,6 +6,7 @@ public interface IFileDialogService
     string? ChooseWindowDiagnosticsJsonPath(string initialFolder);
     string? ChooseFullDiagnosticJsonPath(string initialFolder);
     string? ChooseServiceAccountJsonPath();
+    string? ChooseFolder(string title, string? initialFolder);
     string? ChooseHistoryExportPath();
     string? ChooseHistoryImportPath();
 }

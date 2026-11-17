@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -23,7 +24,8 @@ public sealed class SettingsViewModel : ObservableObject
     private DateTimeOffset _lastVersionClick;
     private string _statusMessage = "设置会保存在本机。";
     private bool _isAdvancedDiagnosticsUnlocked;
-    private readonly string _versionText = "版本 1.0.0";
+    private readonly string _versionText = $"版本 {AppRelease.Version}";
+    private readonly string _initialDatabasePath;
     private TimeMarkScheme? _selectedScheme;
     private string _serviceAccountEmail = "未选择密钥";
 
@@ -39,6 +41,7 @@ public sealed class SettingsViewModel : ObservableObject
         _fileDialogs = fileDialogs;
         _linkClient = linkClient;
         _sheetSync = sheetSync;
+        _initialDatabasePath = settings.DatabasePath;
         Schemes = new ObservableCollection<TimeMarkScheme>(settings.SheetSync.Schemes);
         _selectedScheme = Schemes.FirstOrDefault(scheme =>
             scheme.Name.Equals(settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase)) ?? Schemes[0];
@@ -47,6 +50,11 @@ public sealed class SettingsViewModel : ObservableObject
         SaveCommand = new AsyncRelayCommand(SaveAsync);
         VersionClickCommand = new RelayCommand(HandleVersionClick);
         BrowseKeyCommand = new RelayCommand(BrowseKey);
+        BrowseDataFolderCommand = new RelayCommand(BrowseDataFolder);
+        BrowseExportFolderCommand = new RelayCommand(BrowseExportFolder);
+        ResetDataFolderCommand = new RelayCommand(() => DataFolder = string.Empty);
+        OpenKeyConsoleCommand = new RelayCommand(() => OpenSite("https://console.cloud.google.com/"));
+        OpenSheetsApiCommand = new RelayCommand(() => OpenSite("https://console.cloud.google.com/apis/library/sheets.googleapis.com"));
         CopyScriptCommand = new RelayCommand(CopyScript);
         TryLinkCommand = new AsyncRelayCommand(TryLinkAsync);
         AddSchemeCommand = new RelayCommand(AddScheme);
@@ -167,6 +175,26 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    public string DataFolder
+    {
+        get => _settings.DataFolder;
+        set
+        {
+            _settings.DataFolder = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ExportFolder
+    {
+        get => _settings.ExportFolder;
+        set
+        {
+            _settings.ExportFolder = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string ScriptWebAppUrl
     {
         get => _settings.SheetSync.ScriptWebAppUrl;
@@ -180,6 +208,11 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand SaveCommand { get; }
     public ICommand VersionClickCommand { get; }
     public ICommand BrowseKeyCommand { get; }
+    public ICommand BrowseDataFolderCommand { get; }
+    public ICommand BrowseExportFolderCommand { get; }
+    public ICommand ResetDataFolderCommand { get; }
+    public ICommand OpenKeyConsoleCommand { get; }
+    public ICommand OpenSheetsApiCommand { get; }
     public ICommand CopyScriptCommand { get; }
     public ICommand TryLinkCommand { get; }
     public ICommand AddSchemeCommand { get; }
@@ -193,7 +226,9 @@ public sealed class SettingsViewModel : ObservableObject
         RememberTiers();
         _settings.SheetSync.Schemes = Schemes.ToList();
         _settings.SheetSync.ActiveSchemeName = SelectedScheme?.Name ?? "默认";
+        var previousDatabase = _initialDatabasePath;
         _settings.Normalize(_settings.DatabasePath, _settings.ExportFolder);
+        var dataMoved = CopyDatabaseIfNeeded(previousDatabase, _settings.DatabasePath);
         SelectedScheme = Schemes.FirstOrDefault(scheme =>
             scheme.Name.Equals(_settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase));
         await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
@@ -203,11 +238,42 @@ public sealed class SettingsViewModel : ObservableObject
         {
             StatusMessage = "已保存。正在写入历史…";
             var history = await _sheetSync.PushHistoryAsync().ConfigureAwait(true);
-            StatusMessage = $"已保存。{history}";
+            StatusMessage = dataMoved ? $"已保存。{history} 数据位置在重新打开后生效。" : $"已保存。{history}";
             return;
         }
 
-        StatusMessage = "已保存。";
+        StatusMessage = dataMoved ? "已保存。数据位置在重新打开后生效。" : "已保存。";
+    }
+
+    private static bool CopyDatabaseIfNeeded(string source, string destination)
+    {
+        if (string.IsNullOrWhiteSpace(source) ||
+            string.IsNullOrWhiteSpace(destination) ||
+            string.Equals(source, destination, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(source) ||
+            File.Exists(destination))
+        {
+            return !string.Equals(source, destination, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var folder = Path.GetDirectoryName(destination);
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return true;
+        }
+
+        Directory.CreateDirectory(folder);
+        File.Copy(source, destination);
+        foreach (var suffix in new[] { "-wal", "-shm" })
+        {
+            var side = source + suffix;
+            if (File.Exists(side))
+            {
+                File.Copy(side, destination + suffix);
+            }
+        }
+
+        return true;
     }
 
     private void HandleVersionClick()
@@ -226,6 +292,29 @@ public sealed class SettingsViewModel : ObservableObject
         IsAdvancedDiagnosticsUnlocked = true;
         StatusMessage = "高级诊断已打开。";
         AdvancedDiagnosticsUnlocked?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void BrowseDataFolder()
+    {
+        var folder = _fileDialogs.ChooseFolder("选择数据位置", string.IsNullOrWhiteSpace(DataFolder) ? null : DataFolder);
+        if (!string.IsNullOrWhiteSpace(folder))
+        {
+            DataFolder = folder;
+        }
+    }
+
+    private void BrowseExportFolder()
+    {
+        var folder = _fileDialogs.ChooseFolder("选择导出文件夹", string.IsNullOrWhiteSpace(ExportFolder) ? null : ExportFolder);
+        if (!string.IsNullOrWhiteSpace(folder))
+        {
+            ExportFolder = folder;
+        }
+    }
+
+    private static void OpenSite(string url)
+    {
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     private void BrowseKey()

@@ -30,6 +30,22 @@ public sealed record ApplicationPaths(
             export);
     }
 
+    public ApplicationPaths WithDataFolder(string? dataFolder)
+    {
+        if (string.IsNullOrWhiteSpace(dataFolder))
+        {
+            return this;
+        }
+
+        var custom = ForRoot(dataFolder);
+        return new ApplicationPaths(
+            custom.RootFolder,
+            SettingsFile,
+            custom.LogsFolder,
+            custom.DefaultDatabaseFile,
+            custom.DefaultExportFolder);
+    }
+
     public void EnsureDirectories()
     {
         Directory.CreateDirectory(RootFolder);

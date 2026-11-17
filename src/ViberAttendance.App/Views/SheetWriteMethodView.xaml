@@ -27,7 +27,22 @@
                     <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseKeyCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                     <TextBox Text="{Binding ServiceAccountJsonPath, UpdateSourceTrigger=PropertyChanged}" />
                 </DockPanel>
-                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding ServiceAccountEmail, StringFormat=把表格编辑权限共享给：{0}}" />
+                <TextBlock Margin="0,0,0,12" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="{Binding ServiceAccountEmail, StringFormat=把表格编辑权限共享给：{0}}" />
+                <TextBlock Margin="0,0,0,8" FontWeight="SemiBold" Text="密钥怎么做" />
+                <TextBlock Margin="0,0,0,8" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="密钥是一个下载到电脑上的 JSON 文件。软件用它代表一个专用账号去改表格。表格即使设成所有人可编辑，官方接口也不能匿名写入，所以要用这个文件，或者改选上面的「不用密钥」。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="1. 点「打开控制台」，用你的谷歌账号登录。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="2. 顶部项目菜单里选一个项目。没有项目就新建一个，名字随便取，建好后选中它。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="3. 点「打开 Sheets API」。如果页面上是「启用」，就点启用。已经启用过会显示「管理」。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="4. 左上角菜单打开「IAM 和管理」，再点「服务账号」，然后点「创建服务账号」。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="5. 名称可以填「表格写入」。点「创建并继续」。角色那一步可以跳过，直接点「完成」。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="6. 在列表里点刚出现的那一长串邮箱，打开「密钥」页。点「添加密钥」，选「创建新密钥」，类型选 JSON，再点「创建」。浏览器会下载一个 json 文件。" />
+                <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="7. 回到这里点「浏览」，选中刚下载的 json，然后点页面下方的保存。上面会显示一串以 gserviceaccount.com 结尾的邮箱。" />
+                <TextBlock Margin="0,0,0,10" TextWrapping="Wrap" Text="8. 打开你的谷歌表格，点右上角「共享」，把这个邮箱加进去，权限选「编辑者」。实时和最终如果是两张表，两张都要各共享一次。" />
+                <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                    <Button Margin="0,0,8,0" Content="打开控制台" Command="{Binding OpenKeyConsoleCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button Content="打开 Sheets API" Command="{Binding OpenSheetsApiCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="这个 json 等于那个专用账号的密码。不要发给别人，也不要传到网上。弄好以后勾选「写入实时表格」或「写入最终表格」，再保存。" />
             </StackPanel>
 
             <StackPanel>

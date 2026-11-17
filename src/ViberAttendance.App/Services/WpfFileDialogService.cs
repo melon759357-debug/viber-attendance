@@ -54,6 +54,21 @@ public sealed class WpfFileDialogService : IFileDialogService
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 
+    public string? ChooseFolder(string title, string? initialFolder)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = title,
+            Multiselect = false
+        };
+        if (!string.IsNullOrWhiteSpace(initialFolder) && Directory.Exists(initialFolder))
+        {
+            dialog.InitialDirectory = initialFolder;
+        }
+
+        return dialog.ShowDialog() == true ? dialog.FolderName : null;
+    }
+
     public string? ChooseServiceAccountJsonPath()
     {
         var dialog = new OpenFileDialog
