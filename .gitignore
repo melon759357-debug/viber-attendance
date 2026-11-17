@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+artifacts/
+release/
+release-call-names/
+.dotnet/
+.dotnet-install.ps1
+TestResults/
+*.db
+*.db-shm
+*.db-wal
+*.tmp

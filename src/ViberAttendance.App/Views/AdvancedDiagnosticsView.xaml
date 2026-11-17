@@ -1,0 +1,131 @@
+<UserControl x:Class="ViberAttendance.App.Views.AdvancedDiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ViberAttendance.App.ViewModels"
+             Background="Transparent">
+    <UserControl.Resources>
+        <HierarchicalDataTemplate DataType="{x:Type vm:DiagnosticTreeNodeViewModel}" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding DisplayLabel}" />
+        </HierarchicalDataTemplate>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="28,24,28,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="220" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="260" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="220" />
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitleStyle}" Text="高级诊断" />
+                <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="逐层确认：进程 → 窗口 → UIA → MSAA → 参与者。用于定位“已开 Viber 仍显示未连接”的真实故障层。" />
+            </StackPanel>
+            <Border Grid.Row="2" Style="{StaticResource FlatCardStyle}">
+                <StackPanel>
+                    <WrapPanel>
+                        <Button Margin="0,0,8,8" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RunFullDiagnosticCommand}" Content="运行完整诊断" />
+                        <Button Margin="0,0,8,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding ExportFullDiagnosticCommand}" Content="导出完整诊断JSON" />
+                        <Button Margin="0,0,8,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding FindWindowsCommand}" Content="仅扫描窗口" />
+                        <Button Margin="0,0,8,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding CopyWindowDiagnosticsCommand}" Content="复制诊断信息" />
+                        <Button Margin="0,0,8,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding OpenLogsFolderCommand}" Content="打开日志文件夹" />
+                        <Button Margin="0,0,8,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding ClearLogsCommand}" Content="清空日志" />
+                    </WrapPanel>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding StatusMessage}" />
+                    <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource ErrorRedBrush}" TextWrapping="Wrap">
+                        <Run FontWeight="SemiBold" Text="最近一次错误：" /><Run Text="{Binding LastError, Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap">
+                        <Run FontWeight="SemiBold" Text="导出文件：" /><Run Text="{Binding LastExportPath, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+            <Border Grid.Row="4" Style="{StaticResource FlatCardStyle}">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,8" Style="{StaticResource SectionTitleStyle}" Text="分层结果" />
+                    <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Stage1Text}" />
+                    <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Stage2Text}" />
+                    <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Stage3Text}" />
+                    <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Stage3bText}" />
+                    <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Stage4Text}" />
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" FontWeight="SemiBold" Text="{Binding StrategyText}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Row="6" Style="{StaticResource FlatCardStyle}">
+                <WrapPanel>
+                    <TextBlock Margin="0,0,24,6"><Run FontWeight="SemiBold" Text="检测时间：" /><Run Text="{Binding DetectionTimeText, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6"><Run FontWeight="SemiBold" Text="检测耗时：" /><Run Text="{Binding DetectionDurationText, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6"><Run FontWeight="SemiBold" Text="连接状态：" /><Run Text="{Binding ConnectionStateText, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6"><Run FontWeight="SemiBold" Text="通话状态：" /><Run Text="{Binding CallStateText, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6"><Run FontWeight="SemiBold" Text="候选进程：" /><Run Text="{Binding ProcessCount, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding ProcessStatus, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="选中进程：" /><Run Text="{Binding SelectedProcessText, Mode=OneWay}" /></TextBlock>
+                    <TextBlock Margin="0,0,24,6" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="选中窗口：" /><Run Text="{Binding SelectedWindowText, Mode=OneWay}" /></TextBlock>
+                </WrapPanel>
+            </Border>
+            <Border Grid.Row="8" Padding="0" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Margin="16,12,16,8" Style="{StaticResource SectionTitleStyle}" Text="阶段1：候选 Viber 进程" />
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding CandidateProcesses}" AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ProcessName" Binding="{Binding ProcessName, Mode=OneWay}" Width="120" />
+                            <DataGridTextColumn Header="PID" Binding="{Binding ProcessId, Mode=OneWay}" Width="70" />
+                            <DataGridTextColumn Header="MainWindowHandle" Binding="{Binding MainWindowHandle, Mode=OneWay, StringFormat=0x{0:X}}" Width="120" />
+                            <DataGridTextColumn Header="MainWindowTitle" Binding="{Binding MainWindowTitle, Mode=OneWay}" Width="160" />
+                            <DataGridTextColumn Header="可执行路径" Binding="{Binding ExecutablePath, Mode=OneWay}" Width="*" MinWidth="180" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+            <Border Grid.Row="10" Padding="0" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Margin="16,12,16,8" Style="{StaticResource SectionTitleStyle}" Text="阶段2：顶级窗口列表" />
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding WindowDiagnostics}" AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="HWND" Binding="{Binding HandleHex, Mode=OneWay}" Width="90" />
+                            <DataGridTextColumn Header="标题" Binding="{Binding WindowTitle, Mode=OneWay}" Width="140" />
+                            <DataGridTextColumn Header="类名" Binding="{Binding ClassName, Mode=OneWay}" Width="140" />
+                            <DataGridCheckBoxColumn Header="可见" Binding="{Binding IsVisible, Mode=OneWay}" Width="50" />
+                            <DataGridCheckBoxColumn Header="最小化" Binding="{Binding IsMinimized, Mode=OneWay}" Width="60" />
+                            <DataGridCheckBoxColumn Header="Cloaked" Binding="{Binding IsCloaked, Mode=OneWay}" Width="70" />
+                            <DataGridCheckBoxColumn Header="Tool" Binding="{Binding IsToolWindow, Mode=OneWay}" Width="50" />
+                            <DataGridCheckBoxColumn Header="Owner" Binding="{Binding HasOwner, Mode=OneWay}" Width="55" />
+                            <DataGridTextColumn Header="宽" Binding="{Binding Width, Mode=OneWay}" Width="50" />
+                            <DataGridTextColumn Header="高" Binding="{Binding Height, Mode=OneWay}" Width="50" />
+                            <DataGridTextColumn Header="接受" Binding="{Binding IsAccepted, Mode=OneWay}" Width="55" />
+                            <DataGridTextColumn Header="拒绝原因" Binding="{Binding RejectionReason, Mode=OneWay}" Width="*" MinWidth="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+            <Border Grid.Row="12" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <ComboBox Margin="0,0,0,10" ItemsSource="{Binding CandidateWindows}" SelectedItem="{Binding SelectedWindow}" DisplayMemberPath="DisplayLabel" />
+                        <Button Margin="0,0,0,8" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding CaptureTreeCommand}" Content="采集 UIA 树" />
+                        <Button Style="{StaticResource SmallActionButtonStyle}" Command="{Binding ExportTreeCommand}" Content="导出 UIA 树" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Background="{DynamicResource SecondaryCardBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" CornerRadius="8">
+                        <TreeView Padding="8" ItemsSource="{Binding RootNodes}" Background="Transparent" BorderThickness="0" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

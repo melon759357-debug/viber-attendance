@@ -1,0 +1,47 @@
+<UserControl x:Class="ViberAttendance.App.Views.LiveSheetView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:ViberAttendance.App.Views"
+             Background="Transparent">
+    <Grid Margin="28,24,28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageTitleStyle}" Text="实时" />
+            <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="把每人的上线、下线、状态和累计时长写入一张表格" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel MaxWidth="720" Margin="0,0,18,24" HorizontalAlignment="Left">
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <CheckBox Margin="0,0,0,16" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailEnabled}" Content="写入实时表格" />
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="写入间隔（秒）" />
+                        <TextBox Margin="0,0,0,6" Text="{Binding Settings.SheetSync.IntervalSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="0,0,0,14" Style="{StaticResource CaptionTextStyle}" Text="最终表格也按这个间隔写入。有人上线或下线时会马上写一次。" />
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="表格链接" />
+                        <TextBox Margin="0,0,0,12" Text="{Binding Settings.SheetSync.DetailSpreadsheetUrl, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="工作表名称" />
+                        <TextBox Margin="0,0,0,6" Text="{Binding Settings.SheetSync.DetailSheetName, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。已有记录按编号更新，新人填到空行。" />
+                    </StackPanel>
+                </Border>
+
+                <views:SheetWriteMethodView Margin="0,0,0,16" />
+
+                <StackPanel>
+                    <Button MinWidth="126" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Width="16" Height="16" Data="{StaticResource SaveIconGeometry}" Stretch="Uniform" Stroke="White" StrokeThickness="1.5" />
+                            <TextBlock Margin="8,0,0,0" Foreground="White" Text="保存" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

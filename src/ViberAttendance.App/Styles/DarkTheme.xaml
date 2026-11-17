@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#8B7CF6" />
+    <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#9B8EFA" />
+    <SolidColorBrush x:Key="PrimaryPurplePressedBrush" Color="#7566EA" />
+    <SolidColorBrush x:Key="LightPurpleBrush" Color="#302B4D" />
+    <SolidColorBrush x:Key="PurpleBorderBrush" Color="#4A426B" />
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#15141D" />
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#211F2B" />
+    <SolidColorBrush x:Key="SecondaryCardBackgroundBrush" Color="#292633" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F4F2FA" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#AAA6B7" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#393544" />
+    <SolidColorBrush x:Key="OnlineGreenBrush" Color="#4ADE80" />
+    <SolidColorBrush x:Key="OfflineGrayBrush" Color="#8E8A99" />
+    <SolidColorBrush x:Key="WarningYellowBrush" Color="#FBBF24" />
+    <SolidColorBrush x:Key="ErrorRedBrush" Color="#F87171" />
+    <SolidColorBrush x:Key="NavigationBackgroundBrush" Color="#1B1924" />
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#292633" />
+    <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#302D3B" />
+    <SolidColorBrush x:Key="OnlineBadgeBackgroundBrush" Color="#193525" />
+    <SolidColorBrush x:Key="OfflineBadgeBackgroundBrush" Color="#302E38" />
+    <SolidColorBrush x:Key="WarningBadgeBackgroundBrush" Color="#3D321D" />
+    <SolidColorBrush x:Key="ErrorBadgeBackgroundBrush" Color="#43252A" />
+    <SolidColorBrush x:Key="DangerHoverBrush" Color="#43252A" />
+    <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#302E38" />
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="#777381" />
+    <SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="PageBackground" Color="#15141D" />
+    <SolidColorBrush x:Key="CardBackground" Color="#211F2B" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#AAA6B7" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#393544" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#8B7CF6" />
+    <SolidColorBrush x:Key="OnlineBrush" Color="#4ADE80" />
+    <SolidColorBrush x:Key="OfflineBrush" Color="#8E8A99" />
+    <SolidColorBrush x:Key="PendingBrush" Color="#FBBF24" />
+</ResourceDictionary>

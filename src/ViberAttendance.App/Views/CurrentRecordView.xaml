@@ -1,0 +1,244 @@
+<UserControl x:Class="ViberAttendance.App.Views.CurrentRecordView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid Margin="28,24,28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitleStyle}" Text="Viber 在线记录" />
+                <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="自动记录通话成员的上线、下线和在线时长" />
+            </StackPanel>
+            <Border Grid.Column="1" VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource StatusPillStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusTone}" Value="Online">
+                                <Setter Property="Background" Value="{DynamicResource OnlineBadgeBackgroundBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding StatusTone}" Value="Warning">
+                                <Setter Property="Background" Value="{DynamicResource WarningBadgeBackgroundBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding StatusTone}" Value="Error">
+                                <Setter Property="Background" Value="{DynamicResource ErrorBadgeBackgroundBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{DynamicResource OfflineGrayBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding StatusTone}" Value="Online"><Setter Property="Fill" Value="{DynamicResource OnlineGreenBrush}" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding StatusTone}" Value="Warning"><Setter Property="Fill" Value="{DynamicResource WarningYellowBrush}" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding StatusTone}" Value="Error"><Setter Property="Fill" Value="{DynamicResource ErrorRedBrush}" /></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Style="{StaticResource StatusTextStyle}" Text="{Binding StatusBadgeText}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource MetricCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource IconTileStyle}">
+                        <Path Width="22" Height="22" Data="{StaticResource PhoneIconGeometry}" Stretch="Uniform"
+                              Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.6" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,1,0,0">
+                        <TextBlock Style="{StaticResource MetricLabelStyle}" Text="Viber 连接" />
+                        <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViberConnectionText}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource IconTileStyle}">
+                        <Path Width="22" Height="22" Data="{StaticResource UsersIconGeometry}" Stretch="Uniform"
+                              Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,1,0,0">
+                        <TextBlock Style="{StaticResource MetricLabelStyle}" Text="当前在线" />
+                        <TextBlock Style="{StaticResource MetricValueStyle}">
+                            <Run Text="{Binding OnlineParticipantCount, Mode=OneWay}" /><Run Text=" 人" />
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource MetricCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource IconTileStyle}">
+                        <Path Width="22" Height="22" Data="{StaticResource TimerIconGeometry}" Stretch="Uniform"
+                              Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,1,0,0">
+                        <TextBlock Style="{StaticResource MetricLabelStyle}" Text="本场时长" />
+                        <TextBlock FontSize="20" Style="{StaticResource MetricValueStyle}" Text="{Binding CurrentCallDuration}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="4">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="StartMonitoringButton" MinWidth="128" Margin="0,0,10,0" AutomationProperties.Name="开始监控" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartMonitoringCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Width="16" Height="16" Data="{StaticResource PlayIconGeometry}" Fill="White" Stretch="Uniform" />
+                        <TextBlock Margin="8,0,0,0" Foreground="White" Text="开始监控" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="StopMonitoringButton" MinWidth="128" Margin="0,0,10,0" AutomationProperties.Name="停止监控" Style="{StaticResource DangerButtonStyle}" Command="{Binding StopMonitoringCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Width="15" Height="15" Data="{StaticResource StopIconGeometry}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" Stretch="Uniform" />
+                        <TextBlock Margin="8,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="停止监控" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ExportCurrentButton" MinWidth="128" AutomationProperties.Name="导出记录" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding ExportCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Width="17" Height="17" Data="{StaticResource ExportIconGeometry}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" Stretch="Uniform" />
+                        <TextBlock Margin="8,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="导出记录" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" Text="{Binding ConnectionStatus}" />
+        </Grid>
+
+        <Border Grid.Row="6" Padding="0" Style="{StaticResource CardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="54" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Margin="20,0">
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="参与者记录" />
+                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}">
+                        <Run Text="本场开始：" /><Run Text="{Binding CurrentCallStartTime, Mode=OneWay}" />
+                    </TextBlock>
+                </Grid>
+                <Border Grid.Row="1" Height="1" VerticalAlignment="Top" Background="{DynamicResource DividerBrush}" />
+
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Participants}" AutoGenerateColumns="False">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Participants.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="用户" Width="2*" MinWidth="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="34" Height="34" Background="{DynamicResource LightPurpleBrush}" CornerRadius="17">
+                                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource PrimaryPurpleBrush}" FontWeight="SemiBold" Text="{Binding AvatarText}" />
+                                        </Border>
+                                        <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="内部编号" Binding="{Binding StableUiIdentity, Mode=OneWay}" Width="150" />
+                        <DataGridTextColumn Header="上线时间" Binding="{Binding OnlineAt, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
+                        <DataGridTextColumn Header="下线时间" Binding="{Binding OfflineAt, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
+                        <DataGridTemplateColumn Header="当前状态" Width="92">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border HorizontalAlignment="Left" Padding="9,5" CornerRadius="12">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource WarningBadgeBackgroundBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding StatusText}" Value="在线"><Setter Property="Background" Value="{DynamicResource OnlineBadgeBackgroundBrush}" /></DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusText}" Value="已离线"><Setter Property="Background" Value="{DynamicResource OfflineBadgeBackgroundBrush}" /></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{DynamicResource WarningYellowBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding StatusText}" Value="在线"><Setter Property="Fill" Value="{DynamicResource OnlineGreenBrush}" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding StatusText}" Value="已离线"><Setter Property="Fill" Value="{DynamicResource OfflineGrayBrush}" /></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding StatusText}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="本段时长" Binding="{Binding CurrentDuration, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
+                        <DataGridTextColumn Header="累计时长" Binding="{Binding TotalDuration, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Grid Grid.Row="1" Margin="16">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Participants.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="480">
+                        <Border Width="42" Height="42" HorizontalAlignment="Center" Background="{DynamicResource LightPurpleBrush}" CornerRadius="21">
+                            <Path Width="22" Height="22" Data="{StaticResource UsersIconGeometry}" Stretch="Uniform"
+                                  Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                        </Border>
+                        <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding EmptyStateTitle}" />
+                        <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" TextAlignment="Center" Style="{StaticResource PageSubtitleStyle}" Text="{Binding EmptyStateDescription}" />
+                        <Button Margin="0,9,0,0" HorizontalAlignment="Center" AutomationProperties.Name="重新检测" Style="{StaticResource SmallActionButtonStyle}" Command="{Binding RetryDetectionCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Width="15" Height="15" Data="{StaticResource RefreshIconGeometry}" Stretch="Uniform"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" />
+                                <TextBlock Margin="7,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="重新检测" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

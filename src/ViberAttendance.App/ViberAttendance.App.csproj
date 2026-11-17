@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\ViberAttendance.ico</ApplicationIcon>
+    <AssemblyName>ViberAttendance</AssemblyName>
+    <RootNamespace>ViberAttendance.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\ViberAttendance.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3624" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ViberAttendance.Core\ViberAttendance.Core.csproj" />
+    <ProjectReference Include="..\ViberAttendance.Infrastructure\ViberAttendance.Infrastructure.csproj" />
+    <ProjectReference Include="..\ViberAttendance.Persistence\ViberAttendance.Persistence.csproj" />
+    <ProjectReference Include="..\ViberAttendance.UIAutomation\ViberAttendance.UIAutomation.csproj" />
+    <ProjectReference Include="..\ViberAttendance.Vision\ViberAttendance.Vision.csproj" />
+  </ItemGroup>
+</Project>

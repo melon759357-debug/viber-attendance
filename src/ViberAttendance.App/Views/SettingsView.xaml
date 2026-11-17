@@ -1,0 +1,145 @@
+<UserControl x:Class="ViberAttendance.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid Margin="28,24,28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageTitleStyle}" Text="设置" />
+            <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="调整自动化、识别频率、数据位置和界面外观" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel MaxWidth="780" Margin="0,0,18,24" HorizontalAlignment="Left">
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,18">
+                            <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
+                                <Path Width="21" Height="21" Data="{StaticResource AutomationIconGeometry}" Stretch="Uniform"
+                                      Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                            </Border>
+                            <StackPanel Margin="56,0,0,0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="自动化" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="决定软件何时自动开始工作" />
+                            </StackPanel>
+                        </Grid>
+                        <CheckBox Margin="0,4,0,16" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.AutoMonitorAfterViberStarts}">
+                            <StackPanel>
+                                <TextBlock Text="Viber 启动后自动监控" />
+                                <TextBlock Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" Text="检测到 Viber 后自动寻找参与者名单" />
+                            </StackPanel>
+                        </CheckBox>
+                        <Border Height="1" Margin="0,0,0,16" Background="{DynamicResource DividerBrush}" />
+                        <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.StartWithWindows}">
+                            <StackPanel>
+                                <TextBlock Text="Windows 开机启动" />
+                                <TextBlock Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" Text="登录 Windows 后在后台启动本软件" />
+                            </StackPanel>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,18">
+                            <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
+                                <Path Width="21" Height="21" Data="{StaticResource RecognitionIconGeometry}" Stretch="Uniform"
+                                      Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                            </Border>
+                            <StackPanel Margin="56,0,0,0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="识别" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="默认值兼顾及时性和稳定性" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="扫描间隔（秒）" />
+                                <TextBox Text="{Binding Settings.FastScanSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="建议保持 2 秒" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="下线确认时间（秒）" />
+                                <TextBox Text="{Binding Settings.OfflineWaitSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="建议保持 5 秒" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,18">
+                            <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
+                                <Path Width="21" Height="21" Data="{StaticResource DatabaseIconGeometry}" Stretch="Uniform"
+                                      Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                            </Border>
+                            <StackPanel Margin="56,0,0,0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="存储" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="考勤记录保存在本机数据库" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="数据保存位置" />
+                        <TextBox Margin="0,0,0,14" Text="{Binding Settings.DatabasePath, UpdateSourceTrigger=PropertyChanged}" ToolTip="SQLite 数据库文件" />
+                        <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="导出文件夹" />
+                        <TextBox Text="{Binding Settings.ExportFolder, UpdateSourceTrigger=PropertyChanged}" ToolTip="CSV 导出文件保存位置" />
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="230" /></Grid.ColumnDefinitions>
+                        <Grid>
+                            <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
+                                <Path Width="21" Height="21" Data="{StaticResource PaletteIconGeometry}" Stretch="Uniform"
+                                      Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                            </Border>
+                            <StackPanel Margin="56,0,20,0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="外观" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="可跟随 Windows，也可固定浅色或深色" />
+                            </StackPanel>
+                        </Grid>
+                        <ComboBox x:Name="ThemeComboBox"
+                                  Grid.Column="1"
+                                  AutomationProperties.Name="界面主题"
+                                  ItemsSource="{Binding ThemeOptions}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Value"
+                                  SelectedValue="{Binding Settings.UiTheme}" />
+                    </Grid>
+                </Border>
+
+                <Border Margin="0,0,0,18" Style="{StaticResource CardStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Grid>
+                            <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
+                                <Path Width="21" Height="21" Data="{StaticResource InfoIconGeometry}" Stretch="Uniform"
+                                      Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
+                            </Border>
+                            <StackPanel Margin="56,0,0,0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="关于" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="Viber 在线记录 · 完全本地运行" />
+                            </StackPanel>
+                        </Grid>
+                        <Button Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LinkButtonStyle}" Command="{Binding VersionClickCommand}" Content="{Binding VersionText}" />
+                    </Grid>
+                </Border>
+
+                <Grid>
+                    <Button x:Name="SaveSettingsButton" MinWidth="126" HorizontalAlignment="Left" AutomationProperties.Name="保存设置" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Width="16" Height="16" Data="{StaticResource SaveIconGeometry}" Stretch="Uniform" Stroke="White" StrokeThickness="1.5" />
+                            <TextBlock Margin="8,0,0,0" Foreground="White" Text="保存设置" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

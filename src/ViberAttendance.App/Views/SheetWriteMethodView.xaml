@@ -1,0 +1,69 @@
+<UserControl x:Class="ViberAttendance.App.Views.SheetWriteMethodView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource CardStyle}">
+        <StackPanel>
+            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="写入方式" />
+            <TextBlock Margin="0,4,0,12" Style="{StaticResource CaptionTextStyle}" Text="实时和最终共用这里的选择。" />
+            <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                <RadioButton Margin="0,0,18,0" Content="用密钥" IsChecked="{Binding IsKeyWriteMode}" />
+                <RadioButton Margin="0,0,18,0" Content="不用密钥" IsChecked="{Binding IsScriptWriteMode}" />
+                <RadioButton Content="只填链接" IsChecked="{Binding IsLinkWriteMode}" />
+            </StackPanel>
+
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsKeyWriteMode}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="服务账号密钥" />
+                <DockPanel Margin="0,0,0,6" LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseKeyCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <TextBox Text="{Binding ServiceAccountJsonPath, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding ServiceAccountEmail, StringFormat=把表格编辑权限共享给：{0}}" />
+            </StackPanel>
+
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsScriptWriteMode}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="脚本网址" />
+                <DockPanel Margin="0,0,0,6" LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="复制脚本" Command="{Binding CopyScriptCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <TextBox Text="{Binding ScriptWebAppUrl, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+                <TextBlock Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="在表格里打开扩展程序，选择 Apps Script，粘贴复制的脚本。部署为网页应用：执行身份选“我”，访问权限选“任何人”。把以 /exec 结尾的网址填到这里。" />
+            </StackPanel>
+
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLinkWriteMode}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="只填链接" />
+                <Button Margin="0,0,0,8" HorizontalAlignment="Left" Content="试一次" Command="{Binding TryLinkCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="不用密钥，也不用脚本。填写上面的表格链接后点「试一次」。这一步只询问 Google，不会改表格内容。结果出现在下方。" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>
