@@ -7,7 +7,7 @@ public static class AppRelease
     public const string Version = "1.1.0";
     public const string FileName = "Viber在线记录.exe";
     public const string RepositoryLatest =
-        "https://api.github.com/repos/meldino495-max/viber-attendance/releases/latest";
+        "https://api.github.com/repos/melon759357-debug/viber-attendance/releases/latest";
 
     public static string InstallDirectory =>
         Path.Combine(
