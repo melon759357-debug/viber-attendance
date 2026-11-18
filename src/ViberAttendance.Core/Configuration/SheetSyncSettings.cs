@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ViberAttendance.Core.Sheets;
 
 namespace ViberAttendance.Core.Configuration;
 
@@ -19,13 +20,18 @@ public sealed class SheetSyncSettings
     public string DetailOfflineColumn { get; set; } = "C";
     public string DetailStatusColumn { get; set; } = "D";
     public string DetailDurationColumn { get; set; } = "E";
+    public bool DetailCodeEnabled { get; set; }
+    public string DetailCodeColumn { get; set; } = "F";
 
     public bool TimeEnabled { get; set; }
     public string TimeSpreadsheetUrl { get; set; } = string.Empty;
     public string TimeSheetName { get; set; } = string.Empty;
     public string NameColumn { get; set; } = "A";
     public string TimeColumn { get; set; } = "B";
+    public bool TimeCodeEnabled { get; set; }
+    public string TimeCodeColumn { get; set; } = "C";
     public string NoteColumn { get; set; } = "C";
+    public List<CustomNumber> CustomNumbers { get; set; } = [];
     public int StartRow { get; set; } = 2;
     public int EndRow { get; set; } = 12;
     public string ActiveSchemeName { get; set; } = "默认";
@@ -46,11 +52,14 @@ public sealed class SheetSyncSettings
         DetailOfflineColumn = NormalizeColumn(DetailOfflineColumn, "C");
         DetailStatusColumn = NormalizeColumn(DetailStatusColumn, "D");
         DetailDurationColumn = NormalizeColumn(DetailDurationColumn, "E");
+        DetailCodeColumn = NormalizeColumn(DetailCodeColumn, "F");
         TimeSpreadsheetUrl = TimeSpreadsheetUrl.Trim();
         TimeSheetName = TimeSheetName.Trim();
         NameColumn = NormalizeColumn(NameColumn, "A");
         TimeColumn = NormalizeColumn(TimeColumn, "B");
+        TimeCodeColumn = NormalizeColumn(TimeCodeColumn, "C");
         NoteColumn = NormalizeColumn(NoteColumn, "C");
+        CustomNumbers = CustomNumberDirectory.Normalize(CustomNumbers);
         StartRow = Math.Clamp(StartRow, 1, 5_000);
         EndRow = Math.Clamp(EndRow, StartRow, 5_000);
         Schemes ??= [];
@@ -187,6 +196,12 @@ public sealed class TimeMarkScheme
             ? text.ToUpperInvariant()
             : fallback;
     }
+}
+
+public sealed class CustomNumber
+{
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
 }
 
 public sealed class TimeMarkTier

@@ -59,7 +59,34 @@
                                 <TextBox Text="{Binding Settings.SheetSync.DetailDurationColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。列填字母，例如 A、B。同名的人更新原来那一行，时长写成多少分钟。" />
+                        <CheckBox Margin="0,8,0,8" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailCodeEnabled}" Content="导出自定义号码" />
+                        <StackPanel MaxWidth="220" HorizontalAlignment="Left">
+                            <TextBlock Margin="0,0,0,4" Text="号码列" />
+                            <TextBox Text="{Binding Settings.SheetSync.DetailCodeColumn, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="不勾选就不会写号码列。勾选后，按名字把自定义号码写进这一列。名字里的空格不影响对照。号码列不要和上面的列用同一个字母。" />
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。列填字母，例如 A、B。同名的人更新原来那一行，时长写成多少分钟。" />
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="自定义号码" />
+                        <TextBlock Margin="0,8,0,12" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" Text="还没有记录也可以先设置。从表格复制名字和号码两列，点「从剪贴板读入」。也可以把内容粘贴到下面再点「批量设置」。同一行用 Tab 或逗号分开，第一列是名字，第二列是号码。对照时忽略空格，所以「张 三」和「张三」是同一个人。" />
+                        <TextBox MinHeight="88" Margin="0,0,0,10" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding CustomNumberBatchText, UpdateSourceTrigger=PropertyChanged}" />
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button Margin="0,0,8,8" Content="从剪贴板读入" Command="{Binding PasteCustomNumbersCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Margin="0,0,8,8" Content="批量设置" Command="{Binding ApplyCustomNumbersCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Margin="0,0,8,8" Content="删除选中" Command="{Binding RemoveCustomNumberCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Margin="0,0,0,8" Content="清空" Command="{Binding ClearCustomNumbersCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        </WrapPanel>
+                        <DataGrid Height="220" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}" AutoGenerateColumns="False" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="名字" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="自定义号码" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
                 </Border>
 

@@ -8,6 +8,7 @@ using ViberAttendance.App.Commands;
 using ViberAttendance.App.Services;
 using ViberAttendance.Core.Configuration;
 using ViberAttendance.Core.Contracts;
+using ViberAttendance.Core.Sheets;
 
 namespace ViberAttendance.App.ViewModels;
 
@@ -28,6 +29,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly string _initialDatabasePath;
     private TimeMarkScheme? _selectedScheme;
     private string _serviceAccountEmail = "未选择密钥";
+    private string _customNumberBatchText = string.Empty;
+    private CustomNumber? _selectedCustomNumber;
 
     public SettingsViewModel(
         AppSettings settings,
@@ -43,6 +46,7 @@ public sealed class SettingsViewModel : ObservableObject
         _sheetSync = sheetSync;
         _initialDatabasePath = settings.DatabasePath;
         Schemes = new ObservableCollection<TimeMarkScheme>(settings.SheetSync.Schemes);
+        CustomNumbers = new ObservableCollection<CustomNumber>(settings.SheetSync.CustomNumbers);
         _selectedScheme = Schemes.FirstOrDefault(scheme =>
             scheme.Name.Equals(settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase)) ?? Schemes[0];
         LoadTiers(_selectedScheme);
@@ -63,6 +67,10 @@ public sealed class SettingsViewModel : ObservableObject
         DeleteSchemeCommand = new RelayCommand(DeleteScheme);
         AddTierCommand = new RelayCommand(AddTier);
         RemoveTierCommand = new RelayCommand(RemoveLastTier);
+        ApplyCustomNumbersCommand = new AsyncRelayCommand(() => ApplyCustomNumbersAsync(false));
+        PasteCustomNumbersCommand = new AsyncRelayCommand(() => ApplyCustomNumbersAsync(true));
+        RemoveCustomNumberCommand = new AsyncRelayCommand(RemoveCustomNumberAsync);
+        ClearCustomNumbersCommand = new AsyncRelayCommand(ClearCustomNumbersAsync);
     }
 
     public event EventHandler? AdvancedDiagnosticsUnlocked;
@@ -222,6 +230,24 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand DeleteSchemeCommand { get; }
     public ICommand AddTierCommand { get; }
     public ICommand RemoveTierCommand { get; }
+    public ICommand ApplyCustomNumbersCommand { get; }
+    public ICommand PasteCustomNumbersCommand { get; }
+    public ICommand RemoveCustomNumberCommand { get; }
+    public ICommand ClearCustomNumbersCommand { get; }
+
+    public ObservableCollection<CustomNumber> CustomNumbers { get; }
+
+    public string CustomNumberBatchText
+    {
+        get => _customNumberBatchText;
+        set => SetProperty(ref _customNumberBatchText, value);
+    }
+
+    public CustomNumber? SelectedCustomNumber
+    {
+        get => _selectedCustomNumber;
+        set => SetProperty(ref _selectedCustomNumber, value);
+    }
 
     private async Task RegisterTimeAsync()
     {
@@ -235,10 +261,107 @@ public sealed class SettingsViewModel : ObservableObject
     {
         RememberTiers();
         _settings.SheetSync.Schemes = Schemes.ToList();
+        _settings.SheetSync.CustomNumbers = CustomNumbers.ToList();
         _settings.SheetSync.ActiveSchemeName = SelectedScheme?.Name ?? "默认";
         _settings.Normalize(_settings.DatabasePath, _settings.ExportFolder);
         SelectedScheme = Schemes.FirstOrDefault(scheme =>
             scheme.Name.Equals(_settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase));
+        ReplaceCustomNumbers(_settings.SheetSync.CustomNumbers);
+    }
+
+    private async Task ApplyCustomNumbersAsync(bool fromClipboard)
+    {
+        var text = fromClipboard ? ReadClipboard() : CustomNumberBatchText;
+        if (fromClipboard && string.IsNullOrWhiteSpace(text))
+        {
+            StatusMessage = "剪贴板里没有文字。";
+            return;
+        }
+
+        if (fromClipboard)
+        {
+            CustomNumberBatchText = text ?? string.Empty;
+        }
+
+        var parsed = CustomNumberDirectory.Parse(text);
+        if (parsed.Count == 0)
+        {
+            StatusMessage = "没有读到号码。从表格复制两列，第一列名字，第二列号码。";
+            return;
+        }
+
+        var merged = CustomNumberDirectory.Merge(CustomNumbers, parsed);
+        ReplaceCustomNumbers(merged);
+        if (!await TryRememberSettingsAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        StatusMessage = $"已读入 {parsed.Count} 行，现在共有 {merged.Count} 个自定义号码。";
+    }
+
+    private async Task RemoveCustomNumberAsync()
+    {
+        if (SelectedCustomNumber is not CustomNumber selected)
+        {
+            StatusMessage = "请先选中一个号码。";
+            return;
+        }
+
+        CustomNumbers.Remove(selected);
+        if (!await TryRememberSettingsAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        StatusMessage = "已删除这个号码。";
+    }
+
+    private async Task ClearCustomNumbersAsync()
+    {
+        CustomNumbers.Clear();
+        if (!await TryRememberSettingsAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        StatusMessage = "自定义号码已清空。";
+    }
+
+    private async Task<bool> TryRememberSettingsAsync()
+    {
+        try
+        {
+            PersistScheme();
+            await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
+            return true;
+        }
+        catch (Exception)
+        {
+            StatusMessage = "自定义号码没有保存成功。";
+            return false;
+        }
+    }
+
+    private void ReplaceCustomNumbers(IEnumerable<CustomNumber> numbers)
+    {
+        CustomNumbers.Clear();
+        foreach (var number in numbers)
+        {
+            CustomNumbers.Add(number);
+        }
+    }
+
+    private static string? ReadClipboard()
+    {
+        try
+        {
+            return Clipboard.ContainsText() ? Clipboard.GetText() : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private async Task SaveAsync()

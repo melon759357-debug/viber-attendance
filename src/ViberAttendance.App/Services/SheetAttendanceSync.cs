@@ -179,7 +179,8 @@ public sealed class SheetAttendanceSync(
         var grid = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
         var columns = DetailSheetColumns.From(sheet);
-        var plan = DetailSheetPlanner.Plan(grid, people, columns);
+        var codes = CustomNumberDirectory.Index(sheet.CustomNumbers);
+        var plan = DetailSheetPlanner.Plan(grid, people, columns, codes);
         await sheetClient.WriteAsync(
             sheet.DetailSpreadsheetUrl,
             sheet.DetailSheetName,
@@ -197,7 +198,7 @@ public sealed class SheetAttendanceSync(
             return;
         }
 
-        var retry = DetailSheetPlanner.Plan(verify, missing, columns);
+        var retry = DetailSheetPlanner.Plan(verify, missing, columns, codes);
         await sheetClient.WriteAsync(
             sheet.DetailSpreadsheetUrl,
             sheet.DetailSheetName,

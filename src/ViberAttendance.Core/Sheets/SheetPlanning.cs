@@ -171,7 +171,8 @@ public readonly record struct DetailSheetColumns(
     int Online,
     int Offline,
     int Status,
-    int Duration)
+    int Duration,
+    int? Code = null)
 {
     public static DetailSheetColumns Default { get; } = new(0, 1, 2, 3, 4);
 
@@ -182,7 +183,19 @@ public readonly record struct DetailSheetColumns(
         SheetColumns.TryParse(settings.DetailOfflineColumn, out var offline);
         SheetColumns.TryParse(settings.DetailStatusColumn, out var status);
         SheetColumns.TryParse(settings.DetailDurationColumn, out var duration);
-        return new(name, online, offline, status, duration);
+        int? code = null;
+        if (settings.DetailCodeEnabled &&
+            SheetColumns.TryParse(settings.DetailCodeColumn, out var parsed) &&
+            parsed != name &&
+            parsed != online &&
+            parsed != offline &&
+            parsed != status &&
+            parsed != duration)
+        {
+            code = parsed;
+        }
+
+        return new(name, online, offline, status, duration, code);
     }
 }
 
@@ -196,9 +209,10 @@ public static class DetailSheetPlanner
     public static DetailSheetPlan Plan(
         IReadOnlyList<IReadOnlyList<string>> rows,
         IReadOnlyList<DetailSheetPerson> people,
-        DetailSheetColumns columns)
+        DetailSheetColumns columns,
+        IReadOnlyDictionary<string, string>? codes = null)
     {
-        var headers = new (int Column, string Text)[]
+        var headers = new List<(int Column, string Text)>
         {
             (columns.Name, "姓名"),
             (columns.Online, "上线时间"),
@@ -206,6 +220,10 @@ public static class DetailSheetPlanner
             (columns.Status, "当前状态"),
             (columns.Duration, "累计时长")
         };
+        if (columns.Code is int headerColumn)
+        {
+            headers.Add((headerColumn, "自定义号码"));
+        }
         var cells = new List<SheetCell>();
         var hasHeader = rows.Count > 0 && rows[0].Any(cell => cell.Trim() == "姓名");
         var writeHeader = !hasHeader && (rows.Count == 0 || IsBlank(rows[0]));
@@ -219,6 +237,10 @@ public static class DetailSheetPlanner
                     cells.Add(new SheetCell(1, column, text));
                 }
             }
+        }
+        else if (hasHeader && columns.Code is int codeColumn && string.IsNullOrWhiteSpace(Cell(rows, 0, codeColumn)))
+        {
+            cells.Add(new SheetCell(1, codeColumn, "自定义号码"));
         }
 
         var occupied = new HashSet<int>();
@@ -266,6 +288,10 @@ public static class DetailSheetPlanner
             cells.Add(new SheetCell(row, columns.Offline, person.OfflineText));
             cells.Add(new SheetCell(row, columns.Status, person.Status));
             cells.Add(new SheetCell(row, columns.Duration, person.DurationText));
+            if (columns.Code is int codeColumn)
+            {
+                cells.Add(new SheetCell(row, codeColumn, CustomNumberDirectory.Find(codes, person.Name)));
+            }
         }
 
         return new DetailSheetPlan(cells);
@@ -300,6 +326,13 @@ public static class TimeSheetPlanner
         var scheme = settings.ActiveScheme();
         SheetColumns.TryParse(settings.NameColumn, out var nameColumn);
         SheetColumns.TryParse(settings.TimeColumn, out var timeColumn);
+        int? codeColumn = settings.TimeCodeEnabled &&
+            SheetColumns.TryParse(settings.TimeCodeColumn, out var parsedCode) &&
+            parsedCode != nameColumn &&
+            parsedCode != timeColumn
+            ? parsedCode
+            : null;
+        var codes = CustomNumberDirectory.Index(settings.CustomNumbers);
         var used = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var empty = new List<int>();
         for (var row = settings.StartRow; row <= settings.EndRow; row++)
@@ -348,6 +381,10 @@ public static class TimeSheetPlanner
             var color = scheme.Resolve(person.TotalDuration).Color;
             cells.Add(new SheetCell(row, timeColumn, AttendanceSheetRows.FormatTimeCell(person, scheme)));
             colors.Add(new SheetColor(row, timeColumn, color));
+            if (codeColumn is int column)
+            {
+                cells.Add(new SheetCell(row, column, CustomNumberDirectory.Find(codes, person.Name)));
+            }
         }
 
         return new TimeSheetPlan(cells, colors, overflow);

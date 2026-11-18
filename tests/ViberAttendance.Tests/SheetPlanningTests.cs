@@ -195,6 +195,61 @@ public sealed class SheetPlanningTests
         Assert.Contains('；', note);
     }
 
+    [Fact]
+    public void CustomNumbersIgnoreSpacesAndCanBeLeftOutOfTheSheet()
+    {
+        var pasted = CustomNumberDirectory.Parse("姓名\t号码\r\n张 三\t18\r\n李四,27\r\n王五  36");
+        var stored = CustomNumberDirectory.Merge(
+            [new CustomNumber { Name = "张三", Code = "旧" }],
+            pasted);
+        var index = CustomNumberDirectory.Index(stored);
+
+        Assert.Equal("18", CustomNumberDirectory.Find(index, "张三"));
+        Assert.Equal("18", CustomNumberDirectory.Find(index, "张　三"));
+        Assert.Equal("27", CustomNumberDirectory.Find(index, "李 四"));
+        Assert.Equal("36", CustomNumberDirectory.Find(index, "王五"));
+        Assert.Equal(string.Empty, CustomNumberDirectory.Find(index, "没有的人"));
+
+        var settings = new SheetSyncSettings
+        {
+            DetailCodeEnabled = true,
+            DetailCodeColumn = "F",
+            CustomNumbers = stored
+        };
+        settings.Normalize();
+        var person = new DetailSheetPerson("id", "张 三", "上线", "", "entrar en línea", "10分钟");
+        var enabled = DetailSheetPlanner.Plan([], [person], DetailSheetColumns.From(settings), CustomNumberDirectory.Index(settings.CustomNumbers));
+        Assert.Contains(enabled.Cells, cell => cell.Row == 2 && cell.Column == 5 && cell.Value == "18");
+        Assert.Contains(enabled.Cells, cell => cell.Row == 1 && cell.Column == 5 && cell.Value == "自定义号码");
+
+        settings.DetailCodeEnabled = false;
+        var disabled = DetailSheetPlanner.Plan([], [person], DetailSheetColumns.From(settings), CustomNumberDirectory.Index(settings.CustomNumbers));
+        Assert.DoesNotContain(disabled.Cells, cell => cell.Column == 5);
+    }
+
+    [Fact]
+    public void FinalSheetWritesTheCustomNumberOnlyWhenAsked()
+    {
+        var settings = new SheetSyncSettings
+        {
+            NameColumn = "A",
+            TimeColumn = "B",
+            TimeCodeEnabled = true,
+            TimeCodeColumn = "C",
+            StartRow = 2,
+            EndRow = 4,
+            CustomNumbers = [new CustomNumber { Name = "安 娜", Code = "VB18" }]
+        };
+        settings.Normalize();
+        var plan = TimeSheetPlanner.Plan([], settings, [Person("安娜", 30)]);
+
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Value == "VB18");
+
+        settings.TimeCodeEnabled = false;
+        var hidden = TimeSheetPlanner.Plan([], settings, [Person("安娜", 30)]);
+        Assert.DoesNotContain(hidden.Cells, cell => cell.Column == 2);
+    }
+
     private static TimeSheetPerson Person(string name, int minutes) =>
         new(name, new DateTimeOffset(2026, 11, 17, 19, 0, 0, TimeSpan.FromHours(1)), TimeSpan.FromMinutes(minutes), "备注");
 

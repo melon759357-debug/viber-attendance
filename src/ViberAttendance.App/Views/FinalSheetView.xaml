@@ -47,7 +47,12 @@
                                 <TextBox Text="{Binding Settings.SheetSync.EndRow, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新。点登记才写入，不会按间隔自动写最终表。上线和下线时间写在时间列里。" />
+                        <CheckBox Margin="0,8,0,8" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.TimeCodeEnabled}" Content="导出自定义号码" />
+                        <StackPanel MaxWidth="220" HorizontalAlignment="Left">
+                            <TextBlock Margin="0,0,0,4" Text="号码列" />
+                            <TextBox Text="{Binding Settings.SheetSync.TimeCodeColumn, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新。点登记才写入，不会按间隔自动写最终表。上线和下线时间写在时间列里。不勾选号码列就不会导出。号码在实时页面里设置，对照时忽略空格。" />
                     </StackPanel>
                 </Border>
 
