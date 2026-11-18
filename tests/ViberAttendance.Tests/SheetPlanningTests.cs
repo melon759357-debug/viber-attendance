@@ -67,6 +67,29 @@ public sealed class SheetPlanningTests
     }
 
     [Fact]
+    public void DetailSheetWritesWholeMinutesAndSpanishStatus()
+    {
+        var call = Guid.NewGuid();
+        var member = Guid.NewGuid();
+        var online = new DateTimeOffset(2026, 11, 17, 18, 0, 0, TimeSpan.Zero);
+        var offline = AttendanceSheetRows.BuildDetail(call,
+        [
+            Interval(call, member, "安娜", online, online.AddMinutes(10).AddSeconds(59), "Offline")
+        ]);
+        var left = Assert.Single(offline);
+        Assert.Equal("desconectado", left.Status);
+        Assert.Equal("10", left.DurationText);
+
+        var onlineRows = AttendanceSheetRows.BuildDetail(call,
+        [
+            Interval(call, member, "安娜", online, online.AddMinutes(1), "Online")
+        ]);
+        var present = Assert.Single(onlineRows);
+        Assert.Equal("entrar en línea", present.Status);
+        Assert.Equal(string.Empty, present.OfflineText);
+    }
+
+    [Fact]
     public void TimeSheetStaysInsideTheTopRangeAndMatchesDurationTiers()
     {
         var settings = new SheetSyncSettings

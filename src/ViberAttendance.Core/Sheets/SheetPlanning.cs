@@ -48,9 +48,9 @@ public static class AttendanceSheetRows
                 $"{callId:N}:{group.Key:N}",
                 group.First().DisplayName,
                 FormatClock(online),
-                status == "在线" ? string.Empty : FormatClock(offline),
+                status == OnlineStatus ? string.Empty : FormatClock(offline),
                 status,
-                FormatDuration(TimeSpan.FromTicks(group.Sum(item => Math.Max(0, item.Duration.Ticks)))));
+                FormatMinutes(TimeSpan.FromTicks(group.Sum(item => Math.Max(0, item.Duration.Ticks)))));
         }).ToArray();
 
     public static IReadOnlyList<TimeSheetPerson> BuildTime(IReadOnlyList<AttendanceIntervalRecord> intervals) =>
@@ -88,16 +88,19 @@ public static class AttendanceSheetRows
                 : $"上线 {online} 下线 {offline}";
         }));
 
+    private const string OnlineStatus = "entrar en línea";
+    private const string OfflineStatus = "desconectado";
+
     private static string StatusOf(IGrouping<Guid, AttendanceIntervalRecord> group)
     {
         if (group.Any(item => item.Status is "Online" or "CandidateOffline"))
         {
-            return "在线";
+            return OnlineStatus;
         }
 
         return group.Any(item => item.Status == UserFacingStatuses.InterruptedStatus)
             ? "程序中断"
-            : "已下线";
+            : OfflineStatus;
     }
 
     private static IEnumerable<IGrouping<Guid, AttendanceIntervalRecord>> Group(
@@ -107,10 +110,10 @@ public static class AttendanceSheetRows
     private static string FormatClock(DateTimeOffset value) =>
         value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
-    private static string FormatDuration(TimeSpan value)
+    private static string FormatMinutes(TimeSpan value)
     {
-        var hours = (int)Math.Floor(Math.Max(0, value.TotalHours));
-        return string.Create(CultureInfo.InvariantCulture, $"{hours:00}:{value.Minutes:00}:{value.Seconds:00}");
+        var minutes = (int)Math.Floor(Math.Max(0, value.TotalMinutes));
+        return minutes.ToString(CultureInfo.InvariantCulture);
     }
 }
 
