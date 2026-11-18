@@ -185,7 +185,8 @@ public sealed class SheetAttendanceSync(
         var sheet = settings.SheetSync;
         var grid = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
-        var plan = DetailSheetPlanner.Plan(grid, people);
+        var columns = DetailSheetColumns.From(sheet);
+        var plan = DetailSheetPlanner.Plan(grid, people, columns);
         await sheetClient.WriteAsync(
             sheet.DetailSpreadsheetUrl,
             sheet.DetailSheetName,
@@ -195,13 +196,13 @@ public sealed class SheetAttendanceSync(
 
         var verify = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
-        var missing = people.Where(person => !ContainsRecord(verify, person.RecordId)).ToArray();
+        var missing = people.Where(person => !ContainsRecord(verify, person.RecordId, columns.Record)).ToArray();
         if (missing.Length == 0)
         {
             return;
         }
 
-        var retry = DetailSheetPlanner.Plan(verify, missing);
+        var retry = DetailSheetPlanner.Plan(verify, missing, columns);
         await sheetClient.WriteAsync(
             sheet.DetailSpreadsheetUrl,
             sheet.DetailSheetName,
@@ -334,8 +335,8 @@ public sealed class SheetAttendanceSync(
         settings.SheetSync.Enabled &&
         (settings.SheetSync.DetailEnabled || settings.SheetSync.TimeEnabled);
 
-    private static bool ContainsRecord(IReadOnlyList<IReadOnlyList<string>> rows, string recordId) =>
-        rows.Any(row => row.Count > 5 && row[5].Trim() == recordId);
+    private static bool ContainsRecord(IReadOnlyList<IReadOnlyList<string>> rows, string recordId, int column) =>
+        rows.Any(row => column < row.Count && row[column].Trim() == recordId);
 
     private static HashSet<string> NamesInRange(IReadOnlyList<IReadOnlyList<string>> rows, SheetSyncSettings sheet)
     {

@@ -14,6 +14,12 @@ public sealed class SheetSyncSettings
     public bool DetailEnabled { get; set; }
     public string DetailSpreadsheetUrl { get; set; } = string.Empty;
     public string DetailSheetName { get; set; } = string.Empty;
+    public string DetailNameColumn { get; set; } = "A";
+    public string DetailOnlineColumn { get; set; } = "B";
+    public string DetailOfflineColumn { get; set; } = "C";
+    public string DetailStatusColumn { get; set; } = "D";
+    public string DetailDurationColumn { get; set; } = "E";
+    public string DetailRecordColumn { get; set; } = "F";
 
     public bool TimeEnabled { get; set; }
     public string TimeSpreadsheetUrl { get; set; } = string.Empty;
@@ -36,6 +42,12 @@ public sealed class SheetSyncSettings
         ScriptWebAppUrl = ScriptWebAppUrl.Trim();
         DetailSpreadsheetUrl = DetailSpreadsheetUrl.Trim();
         DetailSheetName = DetailSheetName.Trim();
+        DetailNameColumn = NormalizeColumn(DetailNameColumn, "A");
+        DetailOnlineColumn = NormalizeColumn(DetailOnlineColumn, "B");
+        DetailOfflineColumn = NormalizeColumn(DetailOfflineColumn, "C");
+        DetailStatusColumn = NormalizeColumn(DetailStatusColumn, "D");
+        DetailDurationColumn = NormalizeColumn(DetailDurationColumn, "E");
+        DetailRecordColumn = NormalizeColumn(DetailRecordColumn, "F");
         TimeSpreadsheetUrl = TimeSpreadsheetUrl.Trim();
         TimeSheetName = TimeSheetName.Trim();
         NameColumn = NormalizeColumn(NameColumn, "A");

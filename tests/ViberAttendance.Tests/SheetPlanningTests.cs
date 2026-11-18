@@ -38,6 +38,35 @@ public sealed class SheetPlanningTests
     }
 
     [Fact]
+    public void DetailSheetWritesIntoTheColumnsTheUserChose()
+    {
+        var settings = new SheetSyncSettings
+        {
+            DetailNameColumn = "C",
+            DetailOnlineColumn = "D",
+            DetailOfflineColumn = "E",
+            DetailStatusColumn = "F",
+            DetailDurationColumn = "G",
+            DetailRecordColumn = "H"
+        };
+        settings.Normalize();
+        IReadOnlyList<IReadOnlyList<string>> rows =
+        [
+            ["别动", "", "姓名", "上线时间", "下线时间", "当前状态", "累计时长", "记录编号"],
+            ["", "", "", "", "", "", "", ""],
+            ["别动", "", "别人", "x", "x", "x", "x", "keep"]
+        ];
+        var person = new DetailSheetPerson("call:member", "安娜", "2026-11-17 19:01:00", "", "在线", "00:10:00");
+
+        var plan = DetailSheetPlanner.Plan(rows, [person], DetailSheetColumns.From(settings));
+
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Value == "安娜");
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 7 && cell.Value == "call:member");
+        Assert.DoesNotContain(plan.Cells, cell => cell.Column < 2);
+        Assert.DoesNotContain(plan.Cells, cell => cell.Row == 3);
+    }
+
+    [Fact]
     public void TimeSheetStaysInsideTheTopRangeAndMatchesDurationTiers()
     {
         var settings = new SheetSyncSettings

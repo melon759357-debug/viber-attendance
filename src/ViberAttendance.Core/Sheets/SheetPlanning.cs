@@ -114,22 +114,61 @@ public static class AttendanceSheetRows
     }
 }
 
+public readonly record struct DetailSheetColumns(
+    int Name,
+    int Online,
+    int Offline,
+    int Status,
+    int Duration,
+    int Record)
+{
+    public static DetailSheetColumns Default { get; } = new(0, 1, 2, 3, 4, 5);
+
+    public static DetailSheetColumns From(SheetSyncSettings settings)
+    {
+        SheetColumns.TryParse(settings.DetailNameColumn, out var name);
+        SheetColumns.TryParse(settings.DetailOnlineColumn, out var online);
+        SheetColumns.TryParse(settings.DetailOfflineColumn, out var offline);
+        SheetColumns.TryParse(settings.DetailStatusColumn, out var status);
+        SheetColumns.TryParse(settings.DetailDurationColumn, out var duration);
+        SheetColumns.TryParse(settings.DetailRecordColumn, out var record);
+        return new(name, online, offline, status, duration, record);
+    }
+}
+
 public static class DetailSheetPlanner
 {
-    private static readonly string[] Headers = ["姓名", "上线时间", "下线时间", "当前状态", "累计时长", "记录编号"];
+    public static DetailSheetPlan Plan(
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        IReadOnlyList<DetailSheetPerson> people) =>
+        Plan(rows, people, DetailSheetColumns.Default);
 
     public static DetailSheetPlan Plan(
         IReadOnlyList<IReadOnlyList<string>> rows,
-        IReadOnlyList<DetailSheetPerson> people)
+        IReadOnlyList<DetailSheetPerson> people,
+        DetailSheetColumns columns)
     {
+        var headers = new (int Column, string Text)[]
+        {
+            (columns.Name, "姓名"),
+            (columns.Online, "上线时间"),
+            (columns.Offline, "下线时间"),
+            (columns.Status, "当前状态"),
+            (columns.Duration, "累计时长"),
+            (columns.Record, "记录编号")
+        };
         var cells = new List<SheetCell>();
         var hasHeader = rows.Count > 0 && rows[0].Any(cell => cell.Trim() == "姓名");
         var writeHeader = !hasHeader && (rows.Count == 0 || IsBlank(rows[0]));
         if (writeHeader)
         {
-            for (var column = 0; column < Headers.Length; column++)
+            var written = new HashSet<int>();
+            foreach (var (column, text) in headers)
             {
-                cells.Add(new SheetCell(1, column, Headers[column]));
+                if (written.Add(column))
+                {
+                    cells.Add(new SheetCell(1, column, text));
+                }
             }
         }
 
@@ -153,7 +192,7 @@ public static class DetailSheetPlanner
                 occupied.Add(rowNumber);
             }
 
-            var recordId = Cell(rows, index, 5);
+            var recordId = Cell(rows, index, columns.Record);
             if (!string.IsNullOrWhiteSpace(recordId))
             {
                 byId[recordId] = rowNumber;
@@ -172,12 +211,12 @@ public static class DetailSheetPlanner
                 byId[person.RecordId] = row;
             }
 
-            cells.Add(new SheetCell(row, 0, person.Name));
-            cells.Add(new SheetCell(row, 1, person.OnlineText));
-            cells.Add(new SheetCell(row, 2, person.OfflineText));
-            cells.Add(new SheetCell(row, 3, person.Status));
-            cells.Add(new SheetCell(row, 4, person.DurationText));
-            cells.Add(new SheetCell(row, 5, person.RecordId));
+            cells.Add(new SheetCell(row, columns.Name, person.Name));
+            cells.Add(new SheetCell(row, columns.Online, person.OnlineText));
+            cells.Add(new SheetCell(row, columns.Offline, person.OfflineText));
+            cells.Add(new SheetCell(row, columns.Status, person.Status));
+            cells.Add(new SheetCell(row, columns.Duration, person.DurationText));
+            cells.Add(new SheetCell(row, columns.Record, person.RecordId));
         }
 
         return new DetailSheetPlan(cells);
