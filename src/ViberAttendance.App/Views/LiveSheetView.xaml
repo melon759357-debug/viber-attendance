@@ -48,7 +48,6 @@
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
@@ -59,12 +58,8 @@
                                 <TextBlock Margin="0,0,0,4" Text="时长列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailDurationColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="4">
-                                <TextBlock Margin="0,0,0,4" Text="编号列" />
-                                <TextBox Text="{Binding Settings.SheetSync.DetailRecordColumn, UpdateSourceTrigger=PropertyChanged}" />
-                            </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。列填字母，例如 A、B。编号列用来认出同一条记录。已有记录按编号更新，新人填到整行都空的位置。" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。列填字母，例如 A、B。同名的人更新原来那一行，时长写成多少分钟。" />
                     </StackPanel>
                 </Border>
 

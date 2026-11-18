@@ -95,10 +95,11 @@ public sealed class GoogleSheetGridClient(AppSettings settings) : ISheetGridClie
                 {
                     UserEnteredFormat = new CellFormat
                     {
-                        BackgroundColor = ParseColor(color.Hex)
+                        BackgroundColor = ParseColor(color.Hex),
+                        NumberFormat = new NumberFormat { Type = "TEXT" }
                     }
                 },
-                Fields = "userEnteredFormat.backgroundColor"
+                Fields = "userEnteredFormat.backgroundColor,userEnteredFormat.numberFormat"
             }
         }).ToList();
         await service.Spreadsheets

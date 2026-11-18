@@ -202,6 +202,8 @@ public interface ISheetAttendanceSync
     Task PushInterruptedAsync(CancellationToken cancellationToken = default);
     /// <summary>把本机全部历史写入实时明细表。返回给界面的说明不含链接。</summary>
     Task<string> PushHistoryAsync(CancellationToken cancellationToken = default);
+    /// <summary>把当前或最近一场写入最终表格。返回给界面的说明不含链接。</summary>
+    Task<string> RegisterTimeAsync(CancellationToken cancellationToken = default);
     void Watch(Guid callId);
     void Unwatch();
 }

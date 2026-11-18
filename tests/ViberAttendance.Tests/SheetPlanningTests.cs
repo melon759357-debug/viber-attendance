@@ -46,8 +46,7 @@ public sealed class SheetPlanningTests
             DetailOnlineColumn = "D",
             DetailOfflineColumn = "E",
             DetailStatusColumn = "F",
-            DetailDurationColumn = "G",
-            DetailRecordColumn = "H"
+            DetailDurationColumn = "G"
         };
         settings.Normalize();
         IReadOnlyList<IReadOnlyList<string>> rows =
@@ -61,8 +60,7 @@ public sealed class SheetPlanningTests
         var plan = DetailSheetPlanner.Plan(rows, [person], DetailSheetColumns.From(settings));
 
         Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Value == "安娜");
-        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 7 && cell.Value == "call:member");
-        Assert.DoesNotContain(plan.Cells, cell => cell.Column < 2);
+        Assert.DoesNotContain(plan.Cells, cell => cell.Column is < 2 or > 6);
         Assert.DoesNotContain(plan.Cells, cell => cell.Row == 3);
     }
 
@@ -78,7 +76,7 @@ public sealed class SheetPlanningTests
         ]);
         var left = Assert.Single(offline);
         Assert.Equal("desconectado", left.Status);
-        Assert.Equal("10", left.DurationText);
+        Assert.Equal("10分钟", left.DurationText);
 
         var onlineRows = AttendanceSheetRows.BuildDetail(call,
         [
@@ -87,6 +85,24 @@ public sealed class SheetPlanningTests
         var present = Assert.Single(onlineRows);
         Assert.Equal("entrar en línea", present.Status);
         Assert.Equal(string.Empty, present.OfflineText);
+    }
+
+    [Fact]
+    public void SamePersonUpdatesTheExistingNameAndAddsMinutes()
+    {
+        IReadOnlyList<IReadOnlyList<string>> rows =
+        [
+            ["姓名", "上线时间", "下线时间", "当前状态", "累计时长"],
+            ["安娜", "旧上线", "旧下线", "desconectado", "3分钟"]
+        ];
+        var latest = new DetailSheetPerson("new", "安娜", "新上线", "", "entrar en línea", "10分钟");
+        var older = new DetailSheetPerson("old", "安娜", "更早上线", "更早下线", "desconectado", "5分钟");
+
+        var plan = DetailSheetPlanner.Plan(rows, [latest, older]);
+
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 3 && cell.Value == "entrar en línea");
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 4 && cell.Value == "15分钟");
+        Assert.DoesNotContain(plan.Cells, cell => cell.Row == 3);
     }
 
     [Fact]
@@ -116,13 +132,35 @@ public sealed class SheetPlanningTests
 
         var plan = TimeSheetPlanner.Plan(rows, settings, [known, newbie, overflow]);
 
-        Assert.Contains(plan.Cells, cell => cell.Row == 3 && cell.Column == 1 && cell.Value.Contains('●', StringComparison.Ordinal) && cell.Value.EndsWith(" VB", StringComparison.Ordinal));
+        Assert.Contains(plan.Cells, cell => cell.Row == 3 && cell.Column == 1 && cell.Value.Contains("45分钟", StringComparison.Ordinal) && cell.Value.Contains('●', StringComparison.Ordinal) && cell.Value.Contains("备注", StringComparison.Ordinal));
         Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 0 && cell.Value == "新人");
-        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 1 && cell.Value.Contains('★', StringComparison.Ordinal));
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 1 && cell.Value.Contains('★', StringComparison.Ordinal) && cell.Value.Contains("90分钟", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Cells, cell => cell.Column == 2);
         Assert.Equal(["放不下"], plan.OverflowNames);
         Assert.DoesNotContain(plan.Cells, cell => cell.Row == 4);
         Assert.Contains(plan.Colors, color => color.Row == 3 && color.Hex == "#F9A825");
         Assert.Contains(plan.Colors, color => color.Row == 2 && color.Hex == "#43A047");
+    }
+
+    [Fact]
+    public void TimeCellKeepsTheTypedSymbolAndAddsPrefixBeforeTheDate()
+    {
+        var scheme = TimeMarkScheme.CreateDefault();
+        scheme.DefaultSymbol = "甲";
+        scheme.Tiers[0].Symbol = "长档";
+        scheme.PrefixText = "优秀";
+        scheme.PrefixMinimumMinutes = 60;
+        scheme.Normalize();
+        var longStay = AttendanceSheetRows.FormatTimeCell(Person("长", 120), scheme);
+        var shortStay = AttendanceSheetRows.FormatTimeCell(Person("短", 20), scheme);
+
+        Assert.Contains("长档", longStay, StringComparison.Ordinal);
+        Assert.StartsWith("优秀 ", longStay, StringComparison.Ordinal);
+        Assert.Contains("120分钟", longStay, StringComparison.Ordinal);
+        Assert.Contains("备注", longStay, StringComparison.Ordinal);
+        Assert.Contains("甲", shortStay, StringComparison.Ordinal);
+        Assert.DoesNotContain("优秀", shortStay, StringComparison.Ordinal);
+        Assert.Equal("长档", scheme.Resolve(TimeSpan.FromMinutes(120)).Symbol);
     }
 
     [Fact]
@@ -133,6 +171,7 @@ public sealed class SheetPlanningTests
         var text = AttendanceSheetRows.FormatTimeCell(person, scheme);
 
         Assert.Contains('○', text);
+        Assert.Contains("5分钟", text, StringComparison.Ordinal);
         Assert.Equal("○", scheme.Resolve(TimeSpan.FromMinutes(5)).Symbol);
         Assert.Equal("#E53935", scheme.Resolve(TimeSpan.FromMinutes(5)).Color);
     }

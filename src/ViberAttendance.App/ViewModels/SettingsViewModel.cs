@@ -48,6 +48,7 @@ public sealed class SettingsViewModel : ObservableObject
         LoadTiers(_selectedScheme);
         RefreshAccountEmail();
         SaveCommand = new AsyncRelayCommand(SaveAsync);
+        RegisterTimeCommand = new AsyncRelayCommand(RegisterTimeAsync);
         VersionClickCommand = new RelayCommand(HandleVersionClick);
         BrowseKeyCommand = new RelayCommand(BrowseKey);
         BrowseDataFolderCommand = new RelayCommand(BrowseDataFolder);
@@ -206,6 +207,7 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public ICommand SaveCommand { get; }
+    public ICommand RegisterTimeCommand { get; }
     public ICommand VersionClickCommand { get; }
     public ICommand BrowseKeyCommand { get; }
     public ICommand BrowseDataFolderCommand { get; }
@@ -221,16 +223,29 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand AddTierCommand { get; }
     public ICommand RemoveTierCommand { get; }
 
-    private async Task SaveAsync()
+    private async Task RegisterTimeAsync()
+    {
+        PersistScheme();
+        await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
+        StatusMessage = "正在登记…";
+        StatusMessage = await _sheetSync.RegisterTimeAsync().ConfigureAwait(true);
+    }
+
+    private void PersistScheme()
     {
         RememberTiers();
         _settings.SheetSync.Schemes = Schemes.ToList();
         _settings.SheetSync.ActiveSchemeName = SelectedScheme?.Name ?? "默认";
-        var previousDatabase = _initialDatabasePath;
         _settings.Normalize(_settings.DatabasePath, _settings.ExportFolder);
-        var dataMoved = CopyDatabaseIfNeeded(previousDatabase, _settings.DatabasePath);
         SelectedScheme = Schemes.FirstOrDefault(scheme =>
             scheme.Name.Equals(_settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task SaveAsync()
+    {
+        var previousDatabase = _initialDatabasePath;
+        PersistScheme();
+        var dataMoved = CopyDatabaseIfNeeded(previousDatabase, _settings.DatabasePath);
         await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
         StartupRegistrationService.Apply(_settings.StartWithWindows);
         ThemeService.Apply(_settings.UiTheme);

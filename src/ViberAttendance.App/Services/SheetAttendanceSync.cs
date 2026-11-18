@@ -131,23 +131,16 @@ public sealed class SheetAttendanceSync(
             }
 
             var detailCount = 0;
-            var timeCount = 0;
-            var overflow = 0;
             var sheet = settings.SheetSync;
             if (sheet.DetailEnabled && !string.IsNullOrWhiteSpace(sheet.DetailSpreadsheetUrl))
             {
                 detailCount = await WriteDetailAsync(callId, intervals, cancellationToken).ConfigureAwait(false);
             }
 
-            if (sheet.TimeEnabled && !string.IsNullOrWhiteSpace(sheet.TimeSpreadsheetUrl))
-            {
-                (timeCount, overflow) = await WriteTimeAsync(intervals, cancellationToken).ConfigureAwait(false);
-            }
-
             await logger.WriteAsync(
                 DiagnosticLogLevel.Information,
                 "sheet.sync.completed",
-                $"明细行={detailCount}，时间行={timeCount}，行区已满未写入={overflow}。",
+                $"明细行={detailCount}。",
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -196,7 +189,9 @@ public sealed class SheetAttendanceSync(
 
         var verify = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
-        var missing = people.Where(person => !ContainsRecord(verify, person.RecordId, columns.Record)).ToArray();
+        var missing = AttendanceSheetRows.CollapseByName(people)
+            .Where(person => !ContainsName(verify, person.Name, columns.Name))
+            .ToArray();
         if (missing.Length == 0)
         {
             return;
@@ -211,30 +206,44 @@ public sealed class SheetAttendanceSync(
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task PushCurrentTimeAsync(Guid callId, CancellationToken cancellationToken)
+    public async Task<string> RegisterTimeAsync(CancellationToken cancellationToken = default)
     {
         var sheet = settings.SheetSync;
-        if (!CanSync() || !sheet.TimeEnabled || string.IsNullOrWhiteSpace(sheet.TimeSpreadsheetUrl))
+        if (!sheet.TimeEnabled || string.IsNullOrWhiteSpace(sheet.TimeSpreadsheetUrl))
         {
-            return;
+            return "请先打开「写入最终表格」并填写链接。";
+        }
+
+        var callId = _watchedCallId;
+        if (callId is null)
+        {
+            var calls = await attendanceRepository.GetCallsAsync(cancellationToken).ConfigureAwait(false);
+            callId = calls.Count == 0 ? null : calls[0].CallId;
+        }
+
+        if (callId is not Guid id)
+        {
+            return "没有可登记的通话。";
         }
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var intervals = await attendanceRepository.GetCallIntervalsAsync(callId, cancellationToken)
-                .ConfigureAwait(false);
+            var intervals = await attendanceRepository.GetCallIntervalsAsync(id, cancellationToken).ConfigureAwait(false);
             if (intervals.Count == 0)
             {
-                return;
+                return "这场还没有可登记的记录。";
             }
 
-            var (timeCount, overflow) = await WriteTimeAsync(intervals, cancellationToken).ConfigureAwait(false);
+            var (written, overflow) = await WriteTimeAsync(intervals, cancellationToken).ConfigureAwait(false);
             await logger.WriteAsync(
                 DiagnosticLogLevel.Information,
-                "sheet.sync.completed",
-                $"明细行=0，时间行={timeCount}，行区已满未写入={overflow}。",
+                "sheet.time.registered",
+                $"时间行={written}，行区已满未写入={overflow}。",
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+            return overflow == 0
+                ? $"已登记 {written} 人。"
+                : $"已登记 {written} 人。有 {overflow} 人超出结束行，没有写入。";
         }
         catch (OperationCanceledException)
         {
@@ -244,9 +253,10 @@ public sealed class SheetAttendanceSync(
         {
             await logger.WriteAsync(
                 DiagnosticLogLevel.Warning,
-                "sheet.sync.failed",
-                $"谷歌表格写入失败：{exception.GetType().Name}",
+                "sheet.time.failed",
+                $"最终表格登记失败：{exception.GetType().Name}",
                 cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            return UserFailure(exception);
         }
         finally
         {
@@ -312,7 +322,6 @@ public sealed class SheetAttendanceSync(
             try
             {
                 await PushHistoryAsync(cancellationToken).ConfigureAwait(false);
-                await PushCurrentTimeAsync(callId, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -335,8 +344,8 @@ public sealed class SheetAttendanceSync(
         settings.SheetSync.Enabled &&
         (settings.SheetSync.DetailEnabled || settings.SheetSync.TimeEnabled);
 
-    private static bool ContainsRecord(IReadOnlyList<IReadOnlyList<string>> rows, string recordId, int column) =>
-        rows.Any(row => column < row.Count && row[column].Trim() == recordId);
+    private static bool ContainsName(IReadOnlyList<IReadOnlyList<string>> rows, string name, int column) =>
+        rows.Any(row => column < row.Count && string.Equals(row[column].Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private static HashSet<string> NamesInRange(IReadOnlyList<IReadOnlyList<string>> rows, SheetSyncSettings sheet)
     {

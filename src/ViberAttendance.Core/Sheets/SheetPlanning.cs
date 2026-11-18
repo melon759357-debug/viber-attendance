@@ -68,11 +68,21 @@ public static class AttendanceSheetRows
     public static string FormatTimeCell(TimeSheetPerson person, TimeMarkScheme scheme)
     {
         var (symbol, _) = scheme.Resolve(person.TotalDuration);
-        var duration = person.TotalDuration;
+        var minutes = (int)Math.Floor(Math.Max(0, person.TotalDuration.TotalMinutes));
         var text = string.Create(
             CultureInfo.InvariantCulture,
-            $"{person.FirstOnlineLocal:M/d} {symbol} {(int)duration.TotalHours}:{duration.Minutes:00}:{duration.Seconds:00}");
-        return string.IsNullOrWhiteSpace(scheme.Suffix) ? text : $"{text} {scheme.Suffix.Trim()}";
+            $"{person.FirstOnlineLocal:M/d} {symbol} {minutes}分钟");
+        if (!string.IsNullOrWhiteSpace(scheme.Suffix))
+        {
+            text = $"{text} {scheme.Suffix.Trim()}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(scheme.PrefixText) && minutes >= scheme.PrefixMinimumMinutes)
+        {
+            text = $"{scheme.PrefixText.Trim()} {text}";
+        }
+
+        return string.IsNullOrWhiteSpace(person.Note) ? text : $"{text} {person.Note}";
     }
 
     private static string FormatNote(IReadOnlyList<AttendanceIntervalRecord> segments) =>
@@ -110,10 +120,49 @@ public static class AttendanceSheetRows
     private static string FormatClock(DateTimeOffset value) =>
         value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
+    public static IReadOnlyList<DetailSheetPerson> CollapseByName(IReadOnlyList<DetailSheetPerson> people)
+    {
+        var merged = new List<DetailSheetPerson>();
+        var indexByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var person in people)
+        {
+            var key = person.Name.Trim();
+            if (!indexByName.TryGetValue(key, out var index))
+            {
+                indexByName[key] = merged.Count;
+                merged.Add(person);
+                continue;
+            }
+
+            var current = merged[index];
+            var minutes = ReadMinutes(current.DurationText) + ReadMinutes(person.DurationText);
+            merged[index] = current with
+            {
+                DurationText = minutes.ToString(CultureInfo.InvariantCulture) + "分钟"
+            };
+        }
+
+        return merged;
+    }
+
     private static string FormatMinutes(TimeSpan value)
     {
         var minutes = (int)Math.Floor(Math.Max(0, value.TotalMinutes));
-        return minutes.ToString(CultureInfo.InvariantCulture);
+        return minutes.ToString(CultureInfo.InvariantCulture) + "分钟";
+    }
+
+    private static int ReadMinutes(string text)
+    {
+        var digits = text.Trim();
+        var end = 0;
+        while (end < digits.Length && digits[end] is >= '0' and <= '9')
+        {
+            end++;
+        }
+
+        return end > 0 && int.TryParse(digits[..end], NumberStyles.None, CultureInfo.InvariantCulture, out var minutes)
+            ? minutes
+            : 0;
     }
 }
 
@@ -122,10 +171,9 @@ public readonly record struct DetailSheetColumns(
     int Online,
     int Offline,
     int Status,
-    int Duration,
-    int Record)
+    int Duration)
 {
-    public static DetailSheetColumns Default { get; } = new(0, 1, 2, 3, 4, 5);
+    public static DetailSheetColumns Default { get; } = new(0, 1, 2, 3, 4);
 
     public static DetailSheetColumns From(SheetSyncSettings settings)
     {
@@ -134,8 +182,7 @@ public readonly record struct DetailSheetColumns(
         SheetColumns.TryParse(settings.DetailOfflineColumn, out var offline);
         SheetColumns.TryParse(settings.DetailStatusColumn, out var status);
         SheetColumns.TryParse(settings.DetailDurationColumn, out var duration);
-        SheetColumns.TryParse(settings.DetailRecordColumn, out var record);
-        return new(name, online, offline, status, duration, record);
+        return new(name, online, offline, status, duration);
     }
 }
 
@@ -157,8 +204,7 @@ public static class DetailSheetPlanner
             (columns.Online, "上线时间"),
             (columns.Offline, "下线时间"),
             (columns.Status, "当前状态"),
-            (columns.Duration, "累计时长"),
-            (columns.Record, "记录编号")
+            (columns.Duration, "累计时长")
         };
         var cells = new List<SheetCell>();
         var hasHeader = rows.Count > 0 && rows[0].Any(cell => cell.Trim() == "姓名");
@@ -176,7 +222,7 @@ public static class DetailSheetPlanner
         }
 
         var occupied = new HashSet<int>();
-        var byId = new Dictionary<string, int>(StringComparer.Ordinal);
+        var byName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (writeHeader || hasHeader)
         {
             occupied.Add(1);
@@ -195,23 +241,24 @@ public static class DetailSheetPlanner
                 occupied.Add(rowNumber);
             }
 
-            var recordId = Cell(rows, index, columns.Record);
-            if (!string.IsNullOrWhiteSpace(recordId))
+            var name = Cell(rows, index, columns.Name).Trim();
+            if (name.Length > 0)
             {
-                byId[recordId] = rowNumber;
+                byName.TryAdd(name, rowNumber);
             }
         }
 
         var cursor = 1;
-        foreach (var person in people)
+        foreach (var person in AttendanceSheetRows.CollapseByName(people))
         {
-            var row = byId.TryGetValue(person.RecordId, out var existing)
+            var key = person.Name.Trim();
+            var row = byName.TryGetValue(key, out var existing)
                 ? existing
                 : NextEmpty(occupied, ref cursor);
-            if (!byId.ContainsKey(person.RecordId))
+            if (!byName.ContainsKey(key))
             {
                 occupied.Add(row);
-                byId[person.RecordId] = row;
+                byName[key] = row;
             }
 
             cells.Add(new SheetCell(row, columns.Name, person.Name));
@@ -219,7 +266,6 @@ public static class DetailSheetPlanner
             cells.Add(new SheetCell(row, columns.Offline, person.OfflineText));
             cells.Add(new SheetCell(row, columns.Status, person.Status));
             cells.Add(new SheetCell(row, columns.Duration, person.DurationText));
-            cells.Add(new SheetCell(row, columns.Record, person.RecordId));
         }
 
         return new DetailSheetPlan(cells);
@@ -254,7 +300,6 @@ public static class TimeSheetPlanner
         var scheme = settings.ActiveScheme();
         SheetColumns.TryParse(settings.NameColumn, out var nameColumn);
         SheetColumns.TryParse(settings.TimeColumn, out var timeColumn);
-        SheetColumns.TryParse(settings.NoteColumn, out var noteColumn);
         var used = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var empty = new List<int>();
         for (var row = settings.StartRow; row <= settings.EndRow; row++)
@@ -302,7 +347,6 @@ public static class TimeSheetPlanner
 
             var color = scheme.Resolve(person.TotalDuration).Color;
             cells.Add(new SheetCell(row, timeColumn, AttendanceSheetRows.FormatTimeCell(person, scheme)));
-            cells.Add(new SheetCell(row, noteColumn, person.Note));
             colors.Add(new SheetColor(row, timeColumn, color));
         }
 

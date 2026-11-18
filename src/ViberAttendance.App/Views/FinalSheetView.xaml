@@ -11,7 +11,7 @@
         </Grid.RowDefinitions>
         <StackPanel>
             <TextBlock Style="{StaticResource PageTitleStyle}" Text="最终" />
-            <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="在表格开头的指定行写入月/日、符号、时长和备注" />
+            <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="点登记后，把日期、符号、分钟和上下线时间写进时间列" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -28,7 +28,6 @@
                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
@@ -40,19 +39,15 @@
                                 <TextBox Text="{Binding Settings.SheetSync.TimeColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Grid.Column="4">
-                                <TextBlock Margin="0,0,0,4" Text="备注列" />
-                                <TextBox Text="{Binding Settings.SheetSync.NoteColumn, UpdateSourceTrigger=PropertyChanged}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="6">
                                 <TextBlock Margin="0,0,0,4" Text="起始行" />
                                 <TextBox Text="{Binding Settings.SheetSync.StartRow, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="8">
+                            <StackPanel Grid.Column="6">
                                 <TextBlock Margin="0,0,0,4" Text="结束行" />
                                 <TextBox Text="{Binding Settings.SheetSync.EndRow, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新，不插入行，也不写到这个范围下面。写入间隔在「实时」里设置。" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新。点登记才写入，不会按间隔自动写最终表。上线和下线时间写在时间列里。" />
                     </StackPanel>
                 </Border>
 
@@ -86,7 +81,21 @@
                             </StackPanel>
                             <StackPanel Grid.Column="6">
                                 <TextBlock Margin="0,0,0,4" Text="默认颜色" />
-                                <TextBox Text="{Binding SelectedScheme.DefaultColor, UpdateSourceTrigger=PropertyChanged}" />
+                                <views:ColorChoice Color="{Binding SelectedScheme.DefaultColor, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Margin="0,0,0,4" Text="大于等于多少分钟" />
+                                <TextBox Text="{Binding SelectedScheme.PrefixMinimumMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Margin="0,0,0,4" Text="日期前面自动加的文字" />
+                                <TextBox Text="{Binding SelectedScheme.PrefixText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                         </Grid>
                         <Grid Margin="0,4,0,4">
@@ -110,7 +119,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBox Text="{Binding MinimumMinutes, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBox Grid.Column="2" Text="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" />
-                                        <TextBox Grid.Column="4" Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}" />
+                                        <views:ColorChoice Grid.Column="4" Color="{Binding Color, Mode=TwoWay}" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -119,20 +128,18 @@
                             <Button Margin="0,0,8,0" Content="添加档位" Command="{Binding AddTierCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                             <Button Content="删除最后一档" Command="{Binding RemoveTierCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                         </StackPanel>
-                        <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="从时长最长的档位往下匹配，更短的用默认符号和颜色。示例：11/17 ★ 1:23:45 VB" />
+                        <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" Text="符号按你输入的原样写入。时长写成 120分钟。达到上面的分钟数时，文字加在日期前面。示例：优秀 11/18 ★ 120分钟 VB 上线 19:01 下线 21:01" />
                     </StackPanel>
                 </Border>
 
                 <views:SheetWriteMethodView Margin="0,0,0,16" />
 
                 <StackPanel>
-                    <Button MinWidth="126" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Width="16" Height="16" Data="{StaticResource SaveIconGeometry}" Stretch="Uniform" Stroke="White" StrokeThickness="1.5" />
-                            <TextBlock Margin="8,0,0,0" Foreground="White" Text="保存" />
-                        </StackPanel>
-                    </Button>
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+                    <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                        <Button MinWidth="126" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RegisterTimeCommand}" Content="登记" />
+                        <Button MinWidth="126" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding SaveCommand}" Content="保存" />
+                    </StackPanel>
+                    <TextBlock TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

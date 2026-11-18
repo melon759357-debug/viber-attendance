@@ -26,7 +26,9 @@ public static partial class ScriptSheetProtocol
               var cells = body.cells || [];
               for (var i = 0; i < cells.length; i++) {
                 var value = cells[i].value == null ? "" : String(cells[i].value);
-                sheet.getRange(cells[i].row, cells[i].column + 1).setValue(value);
+                var cell = sheet.getRange(cells[i].row, cells[i].column + 1);
+                cell.setNumberFormat("@");
+                cell.setValue(value);
               }
               var colors = body.colors || [];
               for (var j = 0; j < colors.length; j++) {

@@ -7,7 +7,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\ViberAttendance.ico</ApplicationIcon>
-    <Version>1.1.2</Version>
+    <Version>1.1.6</Version>
     <Product>Viber在线记录</Product>
     <AssemblyTitle>Viber在线记录</AssemblyTitle>
     <AssemblyName>Viber在线记录</AssemblyName>
@@ -15,6 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets\ViberAttendance.ico" />
+    <Resource Include="Assets\ViberAttendance.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3624" />

@@ -19,7 +19,6 @@ public sealed class SheetSyncSettings
     public string DetailOfflineColumn { get; set; } = "C";
     public string DetailStatusColumn { get; set; } = "D";
     public string DetailDurationColumn { get; set; } = "E";
-    public string DetailRecordColumn { get; set; } = "F";
 
     public bool TimeEnabled { get; set; }
     public string TimeSpreadsheetUrl { get; set; } = string.Empty;
@@ -47,7 +46,6 @@ public sealed class SheetSyncSettings
         DetailOfflineColumn = NormalizeColumn(DetailOfflineColumn, "C");
         DetailStatusColumn = NormalizeColumn(DetailStatusColumn, "D");
         DetailDurationColumn = NormalizeColumn(DetailDurationColumn, "E");
-        DetailRecordColumn = NormalizeColumn(DetailRecordColumn, "F");
         TimeSpreadsheetUrl = TimeSpreadsheetUrl.Trim();
         TimeSheetName = TimeSheetName.Trim();
         NameColumn = NormalizeColumn(NameColumn, "A");
@@ -106,6 +104,8 @@ public sealed class TimeMarkScheme
     public string Suffix { get; set; } = "VB";
     public string DefaultSymbol { get; set; } = "○";
     public string DefaultColor { get; set; } = "#E53935";
+    public int PrefixMinimumMinutes { get; set; } = 60;
+    public string PrefixText { get; set; } = string.Empty;
     public List<TimeMarkTier> Tiers { get; set; } =
     [
         new() { MinimumMinutes = 60, Symbol = "★", Color = "#43A047" },
@@ -118,7 +118,9 @@ public sealed class TimeMarkScheme
     {
         Name = Name.Trim();
         Suffix = Suffix.Trim();
-        if (string.IsNullOrWhiteSpace(DefaultSymbol))
+        PrefixText = PrefixText.Trim();
+        PrefixMinimumMinutes = Math.Max(0, PrefixMinimumMinutes);
+        if (string.IsNullOrEmpty(DefaultSymbol))
         {
             DefaultSymbol = "○";
         }
@@ -128,7 +130,7 @@ public sealed class TimeMarkScheme
         foreach (var tier in Tiers)
         {
             tier.MinimumMinutes = Math.Max(0, tier.MinimumMinutes);
-            if (string.IsNullOrWhiteSpace(tier.Symbol))
+            if (string.IsNullOrEmpty(tier.Symbol))
             {
                 tier.Symbol = "●";
             }
@@ -163,6 +165,8 @@ public sealed class TimeMarkScheme
         Suffix = Suffix,
         DefaultSymbol = DefaultSymbol,
         DefaultColor = DefaultColor,
+        PrefixMinimumMinutes = PrefixMinimumMinutes,
+        PrefixText = PrefixText,
         Tiers = Tiers.Select(tier => new TimeMarkTier
         {
             MinimumMinutes = tier.MinimumMinutes,

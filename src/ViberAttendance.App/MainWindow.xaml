@@ -7,7 +7,10 @@
         Height="720"
         MinWidth="850"
         MinHeight="560"
-        Icon="Assets/ViberAttendance.ico"
+        Icon="Assets/ViberAttendance.png"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        RenderOptions.BitmapScalingMode="HighQuality"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}">
     <Window.Triggers>
@@ -32,7 +35,13 @@
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Top" Margin="20,24,16,22" Orientation="Horizontal">
                     <Border Width="44" Height="44" Background="{DynamicResource LightPurpleBrush}" CornerRadius="12">
-                        <Image Width="38" Height="38" Source="Assets/ViberAttendance.ico" Stretch="Uniform" />
+                        <Image Width="38" Height="38" Stretch="Uniform"
+                               SnapsToDevicePixels="True"
+                               RenderOptions.BitmapScalingMode="HighQuality">
+                            <Image.Source>
+                                <BitmapImage UriSource="Assets/ViberAttendance.png" CacheOption="OnLoad" DecodePixelWidth="256" />
+                            </Image.Source>
+                        </Image>
                     </Border>
                     <StackPanel Margin="11,3,0,0">
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="Viber 在线记录" />
