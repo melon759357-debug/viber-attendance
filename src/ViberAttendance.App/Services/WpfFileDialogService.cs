@@ -103,4 +103,28 @@ public sealed class WpfFileDialogService : IFileDialogService
         };
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
+
+    public string? ChooseSheetSetupExportPath()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "导出实时和最终的设置",
+            FileName = $"表格设置-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.json",
+            DefaultExt = ".json",
+            AddExtension = true,
+            Filter = "表格设置 (*.json)|*.json"
+        };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    public string? ChooseSheetSetupImportPath()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "导入实时和最终的设置",
+            Filter = "表格设置 (*.json)|*.json",
+            CheckFileExists = true
+        };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
 }

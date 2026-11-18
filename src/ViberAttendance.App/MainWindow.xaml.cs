@@ -29,6 +29,29 @@ public partial class MainWindow : Window
         mainViewModel.SetOpenHistoryAction(OpenHistory);
         settingsViewModel.AdvancedDiagnosticsUnlocked += OnAdvancedDiagnosticsUnlocked;
         Closed += OnClosed;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        FitToWorkArea();
+    }
+
+    private void FitToWorkArea()
+    {
+        var area = SystemParameters.WorkArea;
+        if (area.Width < MinWidth)
+        {
+            MinWidth = Math.Max(560, area.Width);
+        }
+
+        if (area.Height < MinHeight)
+        {
+            MinHeight = Math.Max(420, area.Height);
+        }
+
+        Width = Math.Min(Width, area.Width);
+        Height = Math.Min(Height, area.Height);
+        MaxWidth = area.Width;
+        MaxHeight = area.Height;
+        Left = area.Left + Math.Max(0, (area.Width - Width) / 2);
+        Top = area.Top + Math.Max(0, (area.Height - Height) / 2);
     }
 
     private void OpenHistory() => HistoryNavButton.IsChecked = true;

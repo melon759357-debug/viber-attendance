@@ -1,10 +1,11 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using ViberAttendance.Core.Sheets;
 
 namespace ViberAttendance.Core.Configuration;
 
-public sealed class SheetSyncSettings
+public sealed class SheetSyncSettings : INotifyPropertyChanged
 {
     public bool Enabled { get; set; }
     public double IntervalSeconds { get; set; } = 30;
@@ -84,6 +85,10 @@ public sealed class SheetSyncSettings
             : Schemes[0].Name;
         Enabled = DetailEnabled || TimeEnabled;
     }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void NotifyAll() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 
     public TimeMarkScheme ActiveScheme() =>
         Schemes.First(scheme => scheme.Name.Equals(ActiveSchemeName, StringComparison.OrdinalIgnoreCase));

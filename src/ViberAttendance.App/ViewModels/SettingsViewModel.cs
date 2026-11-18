@@ -71,6 +71,8 @@ public sealed class SettingsViewModel : ObservableObject
         PasteCustomNumbersCommand = new AsyncRelayCommand(() => ApplyCustomNumbersAsync(true));
         RemoveCustomNumberCommand = new AsyncRelayCommand(RemoveCustomNumberAsync);
         ClearCustomNumbersCommand = new AsyncRelayCommand(ClearCustomNumbersAsync);
+        ExportSheetSetupCommand = new AsyncRelayCommand(ExportSheetSetupAsync);
+        ImportSheetSetupCommand = new AsyncRelayCommand(ImportSheetSetupAsync);
     }
 
     public event EventHandler? AdvancedDiagnosticsUnlocked;
@@ -234,6 +236,8 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand PasteCustomNumbersCommand { get; }
     public ICommand RemoveCustomNumberCommand { get; }
     public ICommand ClearCustomNumbersCommand { get; }
+    public ICommand ExportSheetSetupCommand { get; }
+    public ICommand ImportSheetSetupCommand { get; }
 
     public ObservableCollection<CustomNumber> CustomNumbers { get; }
 
@@ -247,6 +251,71 @@ public sealed class SettingsViewModel : ObservableObject
     {
         get => _selectedCustomNumber;
         set => SetProperty(ref _selectedCustomNumber, value);
+    }
+
+    private async Task ExportSheetSetupAsync()
+    {
+        var path = _fileDialogs.ChooseSheetSetupExportPath();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            PersistScheme();
+            await File.WriteAllTextAsync(path, SheetSetupTransfer.Export(_settings.SheetSync)).ConfigureAwait(true);
+            StatusMessage = "已导出实时和最终的设置。表格链接没有写进文件。";
+        }
+        catch (Exception)
+        {
+            StatusMessage = "设置没有导出成功。";
+        }
+    }
+
+    private async Task ImportSheetSetupAsync()
+    {
+        var path = _fileDialogs.ChooseSheetSetupImportPath();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(path).ConfigureAwait(true);
+            if (!SheetSetupTransfer.TryImport(_settings.SheetSync, json, out var message))
+            {
+                StatusMessage = message;
+                return;
+            }
+
+            ShowImportedSetup();
+            if (!await TryRememberSettingsAsync().ConfigureAwait(true))
+            {
+                return;
+            }
+
+            StatusMessage = "已导入实时和最终的设置。表格链接没有改动。";
+        }
+        catch (Exception)
+        {
+            StatusMessage = "设置没有导入成功。";
+        }
+    }
+
+    private void ShowImportedSetup()
+    {
+        Schemes.Clear();
+        foreach (var scheme in _settings.SheetSync.Schemes)
+        {
+            Schemes.Add(scheme);
+        }
+
+        _selectedScheme = null;
+        SelectedScheme = Schemes.FirstOrDefault(scheme =>
+            scheme.Name.Equals(_settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase)) ?? Schemes[0];
+        ReplaceCustomNumbers(_settings.SheetSync.CustomNumbers);
     }
 
     private async Task RegisterTimeAsync()

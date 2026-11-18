@@ -55,19 +55,18 @@
                                 <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="默认值兼顾及时性和稳定性" />
                             </StackPanel>
                         </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="扫描间隔（秒）" />
+                        <WrapPanel>
+                            <StackPanel Width="220" Margin="0,0,16,8">
+                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Style="{StaticResource FieldLabelStyle}" Text="扫描间隔（秒）" />
                                 <TextBox Text="{Binding Settings.FastScanSeconds, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="建议保持 2 秒" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="下线确认时间（秒）" />
+                            <StackPanel Width="220" Margin="0,0,16,8">
+                                <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Style="{StaticResource FieldLabelStyle}" Text="下线确认时间（秒）" />
                                 <TextBox Text="{Binding Settings.OfflineWaitSeconds, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="建议保持 5 秒" />
                             </StackPanel>
-                        </Grid>
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
@@ -84,69 +83,64 @@
                             </StackPanel>
                         </Grid>
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="数据位置" />
-                        <DockPanel Margin="0,0,0,6" LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseDataFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                            <TextBox Text="{Binding DataFolder, UpdateSourceTrigger=PropertyChanged}" />
-                        </DockPanel>
+                        <TextBox Margin="0,0,0,8" Text="{Binding DataFolder, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Margin="0,0,0,6" HorizontalAlignment="Left" Content="浏览" Command="{Binding BrowseDataFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                         <Button Margin="0,0,0,8" HorizontalAlignment="Left" Content="恢复默认位置" Command="{Binding ResetDataFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                         <TextBlock Margin="0,0,0,14" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="考勤数据库和诊断日志放在这个文件夹。留空就用本机默认位置。保存后重新打开软件生效，原来的记录会复制过去。" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="导出文件夹" />
-                        <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseExportFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                            <TextBox Text="{Binding ExportFolder, UpdateSourceTrigger=PropertyChanged}" />
-                        </DockPanel>
+                        <TextBox Margin="0,0,0,8" Text="{Binding ExportFolder, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button HorizontalAlignment="Left" Content="浏览" Command="{Binding BrowseExportFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                     </StackPanel>
                 </Border>
 
                 <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="230" /></Grid.ColumnDefinitions>
-                        <Grid>
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
                             <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
                                 <Path Width="21" Height="21" Data="{StaticResource PaletteIconGeometry}" Stretch="Uniform"
                                       Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
                             </Border>
-                            <StackPanel Margin="56,0,20,0">
+                            <StackPanel Margin="56,0,0,0">
                                 <TextBlock Style="{StaticResource SectionTitleStyle}" Text="外观" />
                                 <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="可跟随 Windows，也可固定浅色或深色" />
                             </StackPanel>
                         </Grid>
                         <ComboBox x:Name="ThemeComboBox"
-                                  Grid.Column="1"
+                                  MaxWidth="280"
+                                  HorizontalAlignment="Left"
                                   AutomationProperties.Name="界面主题"
                                   ItemsSource="{Binding ThemeOptions}"
                                   DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Value"
                                   SelectedValue="{Binding Settings.UiTheme}" />
-                    </Grid>
+                    </StackPanel>
                 </Border>
 
                 <Border Margin="0,0,0,18" Style="{StaticResource CardStyle}">
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <Grid>
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
                             <Border HorizontalAlignment="Left" Style="{StaticResource IconTileStyle}">
                                 <Path Width="21" Height="21" Data="{StaticResource InfoIconGeometry}" Stretch="Uniform"
                                       Stroke="{DynamicResource PrimaryPurpleBrush}" StrokeThickness="1.5" />
                             </Border>
                             <StackPanel Margin="56,0,0,0">
                                 <TextBlock Style="{StaticResource SectionTitleStyle}" Text="关于" />
-                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Text="打开一份更新的程序时，会替换已经安装的这一份并重新打开。记录仍留在数据位置。" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" Text="打开一份更新的程序时，会替换已经安装的这一份并重新打开。记录仍留在数据位置。" />
                             </StackPanel>
                         </Grid>
-                        <Button Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LinkButtonStyle}" Command="{Binding VersionClickCommand}" Content="{Binding VersionText}" />
-                    </Grid>
+                        <Button HorizontalAlignment="Left" Style="{StaticResource LinkButtonStyle}" Command="{Binding VersionClickCommand}" Content="{Binding VersionText}" />
+                    </StackPanel>
                 </Border>
 
-                <Grid>
+                <StackPanel>
                     <Button x:Name="SaveSettingsButton" MinWidth="126" HorizontalAlignment="Left" AutomationProperties.Name="保存设置" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}">
                         <StackPanel Orientation="Horizontal">
                             <Path Width="16" Height="16" Data="{StaticResource SaveIconGeometry}" Stretch="Uniform" Stroke="White" StrokeThickness="1.5" />
                             <TextBlock Margin="8,0,0,0" Foreground="White" Text="保存设置" />
                         </StackPanel>
                     </Button>
-                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
-                </Grid>
+                    <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -9,4 +9,6 @@ public interface IFileDialogService
     string? ChooseFolder(string title, string? initialFolder);
     string? ChooseHistoryExportPath();
     string? ChooseHistoryImportPath();
+    string? ChooseSheetSetupExportPath();
+    string? ChooseSheetSetupImportPath();
 }

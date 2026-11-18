@@ -3,10 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:ViberAttendance.App.Views"
              Background="Transparent">
-    <Grid Margin="28,24,28,24">
+    <Grid Margin="20,16,20,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel>
@@ -14,8 +14,19 @@
             <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="把每人的上线、下线、状态和累计时长写入一张表格" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel MaxWidth="720" Margin="0,0,18,24" HorizontalAlignment="Left">
+        <Border Grid.Row="1" Margin="0,14,0,0" Padding="16,14" Style="{StaticResource CardStyle}">
+            <StackPanel>
+                <WrapPanel>
+                    <Button MinWidth="112" Margin="0,0,8,8" Content="导出设置" Command="{Binding ExportSheetSetupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button MinWidth="112" Margin="0,0,8,8" Content="导入设置" Command="{Binding ImportSheetSetupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="一次导出或导入实时和最终的列、方案、自定义号码。表格链接、密钥和脚本网址不会写进文件，导入时也保持原来的链接。" />
+                <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,8,16">
                 <Border Margin="0,0,0,16" Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <CheckBox Margin="0,0,0,16" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailEnabled}" Content="写入实时表格" />
@@ -26,44 +37,33 @@
                         <TextBox Margin="0,0,0,12" Text="{Binding Settings.SheetSync.DetailSpreadsheetUrl, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="工作表名称" />
                         <TextBox Margin="0,0,0,14" Text="{Binding Settings.SheetSync.DetailSheetName, UpdateSourceTrigger=PropertyChanged}" />
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Margin="0,0,0,4" Text="姓名列" />
+                        <WrapPanel>
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="姓名列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailNameColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Margin="0,0,0,4" Text="上线列" />
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="上线列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailOnlineColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="4">
-                                <TextBlock Margin="0,0,0,4" Text="下线列" />
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="下线列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailOfflineColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Margin="0,0,0,4" Text="状态列" />
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="状态列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailStatusColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Margin="0,0,0,4" Text="时长列" />
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="时长列" />
                                 <TextBox Text="{Binding Settings.SheetSync.DetailDurationColumn, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                        </Grid>
-                        <CheckBox Margin="0,8,0,8" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailCodeEnabled}" Content="导出自定义号码" />
-                        <StackPanel MaxWidth="220" HorizontalAlignment="Left">
-                            <TextBlock Margin="0,0,0,4" Text="号码列" />
-                            <TextBox Text="{Binding Settings.SheetSync.DetailCodeColumn, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
+                            <StackPanel Width="200" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="号码列" />
+                                <TextBox Text="{Binding Settings.SheetSync.DetailCodeColumn, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </WrapPanel>
+                        <CheckBox Margin="0,4,0,8" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailCodeEnabled}" Content="导出自定义号码" />
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="不勾选就不会写号码列。勾选后，按名字把自定义号码写进这一列。名字里的空格不影响对照。号码列不要和上面的列用同一个字母。" />
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" Text="留空就用第一张工作表。列填字母，例如 A、B。同名的人更新原来那一行，时长写成多少分钟。" />
                     </StackPanel>
@@ -81,7 +81,7 @@
                             <Button Margin="0,0,8,8" Content="删除选中" Command="{Binding RemoveCustomNumberCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                             <Button Margin="0,0,0,8" Content="清空" Command="{Binding ClearCustomNumbersCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                         </WrapPanel>
-                        <DataGrid Height="220" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}" AutoGenerateColumns="False" CanUserAddRows="False">
+                        <DataGrid Height="220" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}" AutoGenerateColumns="False" CanUserAddRows="False" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="名字" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" />
                                 <DataGridTextColumn Header="自定义号码" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*" />
