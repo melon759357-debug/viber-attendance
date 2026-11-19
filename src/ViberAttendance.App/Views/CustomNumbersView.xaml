@@ -1,6 +1,7 @@
 <UserControl x:Class="ViberAttendance.App.Views.CustomNumbersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ViberAttendance.App.Controls"
              Background="Transparent">
     <UserControl.Resources>
         <Style x:Key="NumberHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
@@ -22,8 +23,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <StackPanel>
@@ -37,24 +38,28 @@
             <Button Margin="0,0,8,8" Content="清空" Command="{Binding ClearCustomNumbersCommand}" Style="{StaticResource SecondaryButtonStyle}" />
         </WrapPanel>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}"
-                  AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="True" CanUserDeleteRows="False"
-                  HeadersVisibility="Column" SelectionUnit="Cell" GridLinesVisibility="All"
-                  BorderThickness="1" BorderBrush="{DynamicResource DividerBrush}"
-                  HorizontalGridLinesBrush="{DynamicResource DividerBrush}" VerticalGridLinesBrush="{DynamicResource DividerBrush}"
-                  CellEditEnding="CustomNumbers_CellEditEnding" PreviewKeyDown="CustomNumbers_PreviewKeyDown"
-                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                    <Setter Property="Height" Value="36" />
-                </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="名字" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="2*" MinWidth="180" />
-                <DataGridTextColumn Header="号码" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="140" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <TextBlock Grid.Row="2" Margin="0,0,0,8" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
 
-        <TextBlock Grid.Row="3" Margin="0,10,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
+        <controls:ShrinkToContent Grid.Row="3" VerticalAlignment="Top">
+            <DataGrid ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}"
+                      AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="True" CanUserDeleteRows="False"
+                      HeadersVisibility="Column" SelectionUnit="Cell" GridLinesVisibility="All"
+                      VerticalAlignment="Top"
+                      BorderThickness="1" BorderBrush="{DynamicResource DividerBrush}"
+                      HorizontalGridLinesBrush="{DynamicResource DividerBrush}" VerticalGridLinesBrush="{DynamicResource DividerBrush}"
+                      CellEditEnding="CustomNumbers_CellEditEnding" PreviewKeyDown="CustomNumbers_PreviewKeyDown"
+                      ScrollViewer.CanContentScroll="False"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Setter Property="Height" Value="36" />
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="名字" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                    <DataGridTextColumn Header="号码" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </controls:ShrinkToContent>
     </Grid>
 </UserControl>

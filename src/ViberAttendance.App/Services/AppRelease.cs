@@ -4,7 +4,7 @@ namespace ViberAttendance.App.Services;
 
 public static class AppRelease
 {
-    public const string Version = "1.1.16";
+    public const string Version = "1.1.17";
     public const string FileName = "Viber在线记录.exe";
     public const string RepositoryLatest =
         "https://api.github.com/repos/melon759357-debug/viber-attendance/releases/latest";
