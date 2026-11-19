@@ -163,6 +163,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<ParticipantRowViewModel> Participants { get; } = [];
+
+    public void RefreshDisplayedNumbers() => _coordinator.Republish();
     public ICommand StartMonitoringCommand { get; }
     public ICommand StopMonitoringCommand { get; }
     public ICommand RetryDetectionCommand { get; }

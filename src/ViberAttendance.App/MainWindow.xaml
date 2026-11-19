@@ -26,7 +26,7 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="176" />
+            <ColumnDefinition Width="280" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -48,8 +48,13 @@
                     <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionTextStyle}" Text="通话考勤助手" />
                 </StackPanel>
 
-                <StackPanel DockPanel.Dock="Bottom" Margin="16,0,12,16">
-                    <Border Height="1" Margin="0,0,0,12" Background="{DynamicResource DividerBrush}" />
+                <StackPanel x:Name="SheetSetupPanel" DockPanel.Dock="Bottom" Margin="12,0,12,12">
+                    <Border Height="1" Margin="0,0,0,10" Background="{DynamicResource DividerBrush}" />
+                    <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="表格设置" />
+                    <TextBlock Margin="0,2,0,8" Style="{StaticResource CaptionTextStyle}" Text="一次导入或导出实时和最终" />
+                    <Button Margin="0,0,0,6" HorizontalAlignment="Stretch" Content="导出设置" Command="{Binding ExportSheetSetupCommand}" Style="{StaticResource SmallActionButtonStyle}" />
+                    <Button Margin="0,0,0,6" HorizontalAlignment="Stretch" Content="导入设置" Command="{Binding ImportSheetSetupCommand}" Style="{StaticResource SmallActionButtonStyle}" />
+                    <TextBlock Margin="0,0,0,10" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
                     <TextBlock Style="{StaticResource CaptionTextStyle}" Text="完全本地运行" />
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}">
                         <Run Text="版本 " /><Run Text="{x:Static services:AppRelease.Version}" />
@@ -132,6 +137,46 @@
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" Text="高级诊断" />
                         </StackPanel>
                     </RadioButton>
+
+                    <StackPanel x:Name="CustomNumbersPanel" Margin="12,8,12,12">
+                        <StackPanel.Resources>
+                            <Style x:Key="NumberHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                <Setter Property="Height" Value="32" />
+                                <Setter Property="Padding" Value="8,0" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding}" TextTrimming="None" TextWrapping="NoWrap" />
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </StackPanel.Resources>
+                        <Border Height="1" Margin="0,4,0,10" Background="{DynamicResource DividerBrush}" />
+                        <DataGrid x:Name="CustomNumbersGrid" Height="280" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}"
+                                  AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="True" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" SelectionUnit="Cell" GridLinesVisibility="All"
+                                  BorderThickness="1" BorderBrush="{DynamicResource DividerBrush}"
+                                  HorizontalGridLinesBrush="{DynamicResource DividerBrush}" VerticalGridLinesBrush="{DynamicResource DividerBrush}"
+                                  CellEditEnding="CustomNumbers_CellEditEnding" PreviewKeyDown="CustomNumbers_PreviewKeyDown"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                    <Setter Property="Height" Value="32" />
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="名字" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="号码" HeaderStyle="{StaticResource NumberHeaderStyle}" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Margin="0,8,0,8" Style="{StaticResource CaptionTextStyle}" Text="第一行是名字和号码。从第二行起自己填，最后的空行可以继续加。" />
+                        <Button Margin="0,0,0,6" HorizontalAlignment="Stretch" Content="从剪贴板读入" Command="{Binding PasteCustomNumbersCommand}" Style="{StaticResource SmallActionButtonStyle}" />
+                        <Button Margin="0,0,0,6" HorizontalAlignment="Stretch" Content="删除选中" Command="{Binding RemoveCustomNumberCommand}" Style="{StaticResource SmallActionButtonStyle}" />
+                        <Button HorizontalAlignment="Stretch" Content="清空" Command="{Binding ClearCustomNumbersCommand}" Style="{StaticResource SmallActionButtonStyle}" />
+                    </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
             </DockPanel>

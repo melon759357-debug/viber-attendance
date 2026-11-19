@@ -30,6 +30,8 @@ public sealed class SettingsViewModel : ObservableObject
     private TimeMarkScheme? _selectedScheme;
     private string _serviceAccountEmail = "未选择密钥";
     private string _customNumberBatchText = string.Empty;
+    private string _newCustomNumberName = string.Empty;
+    private string _newCustomNumberCode = string.Empty;
     private CustomNumber? _selectedCustomNumber;
 
     public SettingsViewModel(
@@ -67,6 +69,7 @@ public sealed class SettingsViewModel : ObservableObject
         DeleteSchemeCommand = new RelayCommand(DeleteScheme);
         AddTierCommand = new RelayCommand(AddTier);
         RemoveTierCommand = new RelayCommand(RemoveLastTier);
+        AddCustomNumberCommand = new AsyncRelayCommand(AddCustomNumberAsync);
         ApplyCustomNumbersCommand = new AsyncRelayCommand(() => ApplyCustomNumbersAsync(false));
         PasteCustomNumbersCommand = new AsyncRelayCommand(() => ApplyCustomNumbersAsync(true));
         RemoveCustomNumberCommand = new AsyncRelayCommand(RemoveCustomNumberAsync);
@@ -76,6 +79,7 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public event EventHandler? AdvancedDiagnosticsUnlocked;
+    public event EventHandler? CustomNumbersChanged;
 
     public AppSettings Settings => _settings;
     public IReadOnlyList<ThemeOptionViewModel> ThemeOptions { get; } =
@@ -232,6 +236,7 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand DeleteSchemeCommand { get; }
     public ICommand AddTierCommand { get; }
     public ICommand RemoveTierCommand { get; }
+    public ICommand AddCustomNumberCommand { get; }
     public ICommand ApplyCustomNumbersCommand { get; }
     public ICommand PasteCustomNumbersCommand { get; }
     public ICommand RemoveCustomNumberCommand { get; }
@@ -245,6 +250,18 @@ public sealed class SettingsViewModel : ObservableObject
     {
         get => _customNumberBatchText;
         set => SetProperty(ref _customNumberBatchText, value);
+    }
+
+    public string NewCustomNumberName
+    {
+        get => _newCustomNumberName;
+        set => SetProperty(ref _newCustomNumberName, value);
+    }
+
+    public string NewCustomNumberCode
+    {
+        get => _newCustomNumberCode;
+        set => SetProperty(ref _newCustomNumberCode, value);
     }
 
     public CustomNumber? SelectedCustomNumber
@@ -338,6 +355,29 @@ public sealed class SettingsViewModel : ObservableObject
         ReplaceCustomNumbers(_settings.SheetSync.CustomNumbers);
     }
 
+    private async Task AddCustomNumberAsync()
+    {
+        if (CustomNumberDirectory.Key(NewCustomNumberName).Length == 0 || string.IsNullOrWhiteSpace(NewCustomNumberCode))
+        {
+            StatusMessage = "请填写名字和号码。";
+            return;
+        }
+
+        var merged = CustomNumberDirectory.Merge(CustomNumbers,
+        [
+            new CustomNumber { Name = NewCustomNumberName, Code = NewCustomNumberCode }
+        ]);
+        ReplaceCustomNumbers(merged);
+        NewCustomNumberName = string.Empty;
+        NewCustomNumberCode = string.Empty;
+        if (!await TryRememberSettingsAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        StatusMessage = "已添加。同名的人会改成新号码。";
+    }
+
     private async Task ApplyCustomNumbersAsync(bool fromClipboard)
     {
         var text = fromClipboard ? ReadClipboard() : CustomNumberBatchText;
@@ -397,12 +437,41 @@ public sealed class SettingsViewModel : ObservableObject
         StatusMessage = "自定义号码已清空。";
     }
 
+    public async Task RememberCustomNumbersAsync()
+    {
+        try
+        {
+            var pending = CustomNumbers
+                .Where(item => CustomNumberDirectory.Key(item.Name).Length == 0 || string.IsNullOrWhiteSpace(item.Code))
+                .ToList();
+            RememberTiers();
+            _settings.SheetSync.Schemes = Schemes.ToList();
+            _settings.SheetSync.CustomNumbers = CustomNumbers.ToList();
+            _settings.SheetSync.ActiveSchemeName = SelectedScheme?.Name ?? "默认";
+            _settings.Normalize(_settings.DatabasePath, _settings.ExportFolder);
+            if (pending.Count == 0)
+            {
+                SelectedScheme = Schemes.FirstOrDefault(scheme =>
+                    scheme.Name.Equals(_settings.SheetSync.ActiveSchemeName, StringComparison.OrdinalIgnoreCase));
+                ReplaceCustomNumbers(_settings.SheetSync.CustomNumbers);
+            }
+
+            await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
+            CustomNumbersChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception)
+        {
+            StatusMessage = "自定义号码没有保存成功。";
+        }
+    }
+
     private async Task<bool> TryRememberSettingsAsync()
     {
         try
         {
             PersistScheme();
             await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
+            CustomNumbersChanged?.Invoke(this, EventArgs.Empty);
             return true;
         }
         catch (Exception)

@@ -6,6 +6,7 @@ using ViberAttendance.Core.Attendance;
 using ViberAttendance.Core.Configuration;
 using ViberAttendance.Core.Contracts;
 using ViberAttendance.Core.Models;
+using ViberAttendance.Core.Sheets;
 
 namespace ViberAttendance.App.Services;
 
@@ -145,15 +146,19 @@ public sealed class MonitoringCoordinator(
         return await ExportCallAsync(callId.Value, cancellationToken).ConfigureAwait(false);
     }
 
+    public void Republish() => PublishSnapshot(clock.UtcNow);
+
     public async Task<string> ExportCallAsync(Guid callId, CancellationToken cancellationToken = default)
     {
         var rows = await attendanceRepository.GetCallIntervalsAsync(callId, cancellationToken).ConfigureAwait(false);
         Directory.CreateDirectory(settings.ExportFolder);
         var path = Path.Combine(settings.ExportFolder, $"Viber在线记录-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.csv");
-        var builder = new StringBuilder("姓名,内部编号,上线时间,下线时间,本段在线时长,状态\r\n");
+        var codes = CustomNumberDirectory.Index(settings.SheetSync.CustomNumbers);
+        var builder = new StringBuilder("姓名,自定义号码,内部编号,上线时间,下线时间,本段在线时长,状态\r\n");
         foreach (var row in rows)
         {
             builder.Append(EscapeCsv(row.DisplayName)).Append(',')
+                .Append(EscapeCsv(CustomNumberDirectory.Find(codes, row.DisplayName))).Append(',')
                 .Append(EscapeCsv(row.StableUiIdentity ?? string.Empty)).Append(',')
                 .Append(FormatLocalTime(row.OnlineAtUtc)).Append(',')
                 .Append(FormatLocalTime(row.OfflineAtUtc)).Append(',')
@@ -530,11 +535,12 @@ public sealed class MonitoringCoordinator(
 
     private void PublishSnapshot(DateTimeOffset now)
     {
+        var codes = CustomNumberDirectory.Index(settings.SheetSync.CustomNumbers);
         var rows = _participants
             .OrderBy(participant => participant.State == MemberPresenceState.Offline)
             .ThenBy(participant => participant.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ThenByDescending(participant => participant.OnlineAtUtc)
-            .Select(participant => ToRow(participant, now))
+            .Select(participant => ToRow(participant, now, codes))
             .ToArray();
         SnapshotChanged?.Invoke(this, new MonitoringUiSnapshot(
             _connectionState,
@@ -545,7 +551,10 @@ public sealed class MonitoringCoordinator(
             _isDetecting));
     }
 
-    private static ParticipantRowViewModel ToRow(ParticipantPresenceSnapshot participant, DateTimeOffset now)
+    private static ParticipantRowViewModel ToRow(
+        ParticipantPresenceSnapshot participant,
+        DateTimeOffset now,
+        IReadOnlyDictionary<string, string> codes)
     {
         var stateText = participant.State switch
         {
@@ -565,7 +574,8 @@ public sealed class MonitoringCoordinator(
             participant.State is MemberPresenceState.Online or MemberPresenceState.CandidateOffline,
             FormatDuration(currentDuration),
             FormatDuration(participant.TotalDuration),
-            stateText);
+            stateText,
+            CustomNumberDirectory.Find(codes, participant.DisplayName));
     }
 
     private static string FormatLocalTime(DateTimeOffset? value) =>

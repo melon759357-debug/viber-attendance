@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ViberAttendance.App.ViewModels;
 
 namespace ViberAttendance.App;
@@ -21,6 +22,8 @@ public partial class MainWindow : Window
         _historyViewModel = historyViewModel;
         _settingsViewModel = settingsViewModel;
         _advancedDiagnosticsViewModel = advancedDiagnosticsViewModel;
+        SheetSetupPanel.DataContext = settingsViewModel;
+        CustomNumbersPanel.DataContext = settingsViewModel;
         HistoryTab.DataContext = historyViewModel;
         LiveSheetTab.DataContext = settingsViewModel;
         FinalSheetTab.DataContext = settingsViewModel;
@@ -28,6 +31,7 @@ public partial class MainWindow : Window
         AdvancedTab.DataContext = advancedDiagnosticsViewModel;
         mainViewModel.SetOpenHistoryAction(OpenHistory);
         settingsViewModel.AdvancedDiagnosticsUnlocked += OnAdvancedDiagnosticsUnlocked;
+        settingsViewModel.CustomNumbersChanged += OnCustomNumbersChanged;
         Closed += OnClosed;
         WindowStartupLocation = WindowStartupLocation.Manual;
         FitToWorkArea();
@@ -56,6 +60,52 @@ public partial class MainWindow : Window
 
     private void OpenHistory() => HistoryNavButton.IsChecked = true;
 
+    private void OnCustomNumbersChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel mainViewModel)
+        {
+            mainViewModel.RefreshDisplayedNumbers();
+        }
+
+        _historyViewModel.RefreshMatchedNumbers();
+    }
+
+    private void CustomNumbers_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() => _ = _settingsViewModel.RememberCustomNumbersAsync()));
+    }
+
+    private void CustomNumbers_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        string? text;
+        try
+        {
+            text = Clipboard.ContainsText() ? Clipboard.GetText() : null;
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text) || (!text.Contains('\t') && !text.Contains('\n') && !text.Contains('\r')))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _settingsViewModel.PasteCustomNumbersCommand.Execute(null);
+    }
+
     private async void OnAdvancedDiagnosticsUnlocked(object? sender, EventArgs e)
     {
         AdvancedNavButton.Visibility = Visibility.Visible;
@@ -75,6 +125,11 @@ public partial class MainWindow : Window
         {
             case "Current":
                 MainTabs.SelectedItem = CurrentTab;
+                if (DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.RefreshDisplayedNumbers();
+                }
+
                 break;
             case "History":
                 MainTabs.SelectedItem = HistoryTab;
@@ -98,6 +153,7 @@ public partial class MainWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _settingsViewModel.AdvancedDiagnosticsUnlocked -= OnAdvancedDiagnosticsUnlocked;
+        _settingsViewModel.CustomNumbersChanged -= OnCustomNumbersChanged;
         Closed -= OnClosed;
     }
 }

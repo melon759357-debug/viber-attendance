@@ -11,7 +11,8 @@ public sealed record ParticipantRowViewModel(
     bool IsOnline,
     string CurrentDuration,
     string TotalDuration,
-    string StatusText)
+    string StatusText,
+    string CustomNumber)
 {
     public string AvatarText => string.IsNullOrWhiteSpace(DisplayName)
         ? "?"

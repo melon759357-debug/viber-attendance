@@ -19,10 +19,7 @@
                 <WrapPanel>
                     <Button MinWidth="126" Margin="0,0,8,8" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RegisterTimeCommand}" Content="登记" />
                     <Button MinWidth="126" Margin="0,0,8,8" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding SaveCommand}" Content="保存" />
-                    <Button MinWidth="112" Margin="0,0,8,8" Content="导出设置" Command="{Binding ExportSheetSetupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                    <Button MinWidth="112" Margin="0,0,8,8" Content="导入设置" Command="{Binding ImportSheetSetupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                 </WrapPanel>
-                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="导出和导入包含实时和最终的列、方案、自定义号码。表格链接、密钥和脚本网址不会写进文件，导入时也保持原来的链接。" />
                 <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
             </StackPanel>
         </Border>
@@ -59,7 +56,7 @@
                             </StackPanel>
                         </WrapPanel>
                         <CheckBox Margin="0,4,0,8" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.TimeCodeEnabled}" Content="导出自定义号码" />
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新。点上方的登记才写入，不会按间隔自动写最终表。上线和下线时间写在时间列里。不勾选号码列就不会导出。号码在实时页面里设置，对照时忽略空格。" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="只在起始行到结束行里按姓名更新。点上方的登记才写入，不会按间隔自动写最终表。上线和下线时间写在时间列里。勾选后按左侧栏的名单自动填号码，空格不影响。不勾选号码列就不会导出。" />
                     </StackPanel>
                 </Border>
 

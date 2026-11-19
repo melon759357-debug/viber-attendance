@@ -5,8 +5,10 @@ using System.Text.Json;
 using System.Windows.Input;
 using ViberAttendance.App.Commands;
 using ViberAttendance.App.Services;
+using ViberAttendance.Core.Configuration;
 using ViberAttendance.Core.Contracts;
 using ViberAttendance.Core.Models;
+using ViberAttendance.Core.Sheets;
 
 namespace ViberAttendance.App.ViewModels;
 
@@ -27,7 +29,8 @@ public sealed record HistoryIntervalRowViewModel(
     string OnlineAt,
     string OfflineAt,
     string Duration,
-    string StatusText);
+    string StatusText,
+    string CustomNumber);
 
 public sealed class HistoryViewModel : ObservableObject
 {
@@ -36,6 +39,7 @@ public sealed class HistoryViewModel : ObservableObject
     private readonly IConfirmationDialogService _confirmationDialogService;
     private readonly IFileDialogService _fileDialogs;
     private readonly ISheetAttendanceSync _sheetSync;
+    private readonly AppSettings _settings;
     private static readonly JsonSerializerOptions ArchiveJson = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -59,13 +63,15 @@ public sealed class HistoryViewModel : ObservableObject
         MonitoringCoordinator coordinator,
         IConfirmationDialogService confirmationDialogService,
         IFileDialogService fileDialogs,
-        ISheetAttendanceSync sheetSync)
+        ISheetAttendanceSync sheetSync,
+        AppSettings settings)
     {
         _repository = repository;
         _coordinator = coordinator;
         _confirmationDialogService = confirmationDialogService;
         _fileDialogs = fileDialogs;
         _sheetSync = sheetSync;
+        _settings = settings;
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
         ViewDetailsCommand = new AsyncRelayCommand(ViewDetailsAsync);
         DeleteCommand = new AsyncRelayCommand(DeleteAsync);
@@ -259,6 +265,8 @@ public sealed class HistoryViewModel : ObservableObject
         }
     }
 
+    internal void RefreshMatchedNumbers() => ScheduleDetailLoad();
+
     private void ScheduleDetailLoad() => _detailLoad = LoadSelectedDetailsAsync();
 
     private async Task LoadSelectedDetailsAsync()
@@ -282,6 +290,7 @@ public sealed class HistoryViewModel : ObservableObject
 
         Details.Clear();
         SelectedInterval = null;
+        var codes = CustomNumberDirectory.Index(_settings.SheetSync.CustomNumbers);
         foreach (var row in details)
         {
             Details.Add(new HistoryIntervalRowViewModel(
@@ -292,7 +301,8 @@ public sealed class HistoryViewModel : ObservableObject
                 row.OnlineAtUtc?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture) ?? "—",
                 row.OfflineAtUtc?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture) ?? "—",
                 FormatDuration(row.Duration),
-                UserFacingStatuses.DescribeIntervalStatus(row.Status, row.OfflineAtUtc is not null)));
+                UserFacingStatuses.DescribeIntervalStatus(row.Status, row.OfflineAtUtc is not null),
+                CustomNumberDirectory.Find(codes, row.DisplayName)));
         }
 
         HasDetails = Details.Count > 0;
