@@ -16,6 +16,13 @@ public sealed class SheetGridClientRouter(
         CancellationToken cancellationToken = default) =>
         Client.ReadAsync(spreadsheetUrl, sheetName, cancellationToken);
 
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        int columnCount,
+        CancellationToken cancellationToken = default) =>
+        Client.ReadAsync(spreadsheetUrl, sheetName, columnCount, cancellationToken);
+
     public Task WriteAsync(
         string spreadsheetUrl,
         string sheetName,

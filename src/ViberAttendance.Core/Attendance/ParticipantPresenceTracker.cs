@@ -98,7 +98,13 @@ public sealed class ParticipantPresenceTracker(
                 continue;
             }
 
-            CompleteEntry(entry, now);
+            var offlineAt = entry.LastSeenAtUtc + offlineConfirmationTime;
+            if (offlineAt > now)
+            {
+                offlineAt = now;
+            }
+
+            CompleteEntry(entry, offlineAt);
             _activeEntries.Remove(pair.Key);
             changed.Add(entry);
         }

@@ -21,16 +21,24 @@ public sealed class GoogleSheetGridClient(AppSettings settings) : ISheetGridClie
     private SheetsService? _service;
     private string? _servicePath;
 
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        CancellationToken cancellationToken = default) =>
+        ReadAsync(spreadsheetUrl, sheetName, 26, cancellationToken);
+
     public async Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
         string spreadsheetUrl,
         string sheetName,
+        int columnCount,
         CancellationToken cancellationToken = default)
     {
         var service = CreateService();
         var spreadsheetId = ParseSpreadsheetId(spreadsheetUrl);
         var title = await ResolveTitleAsync(service, spreadsheetId, sheetName, cancellationToken).ConfigureAwait(false);
+        var end = SheetColumns.Letter(Math.Max(columnCount, 26) - 1);
         var response = await service.Spreadsheets.Values
-            .Get(spreadsheetId, $"{Quote(title)}!A:Z")
+            .Get(spreadsheetId, $"{Quote(title)}!A:{end}")
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
         return response.Values?

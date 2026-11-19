@@ -39,6 +39,9 @@ public sealed class MonitoringCoordinator(
     private DateTimeOffset? _currentCallStartTime;
     private DateTimeOffset? _lastViberSeenAt;
     private DateTimeOffset? _lastParticipantListSeenAt;
+    private DateTimeOffset? _callSignalLostAt;
+    private long? _currentCallWindowHwnd;
+    private IReadOnlyList<ResolvedParticipantObservation> _lastResolved = [];
     private IReadOnlyList<ParticipantPresenceSnapshot> _participants = [];
     private ConnectionState _connectionState = ConnectionState.ViberNotRunning;
     private string _connectionStatus = UserFacingStatuses.ViberNotRunning;
@@ -162,7 +165,7 @@ public sealed class MonitoringCoordinator(
                 .Append(EscapeCsv(row.StableUiIdentity ?? string.Empty)).Append(',')
                 .Append(FormatLocalTime(row.OnlineAtUtc)).Append(',')
                 .Append(FormatLocalTime(row.OfflineAtUtc)).Append(',')
-                .Append(FormatDuration(row.Duration)).Append(',')
+                .Append(DurationText.Format(row.Duration)).Append(',')
                 .Append(EscapeCsv(UserFacingStatuses.DescribeIntervalStatus(row.Status, row.OfflineAtUtc is not null)))
                 .Append("\r\n");
         }
@@ -304,14 +307,7 @@ public sealed class MonitoringCoordinator(
             return;
         }
 
-        var window = discovery.CallWindow ?? discovery.MainWindow ??
-            (discovery.Candidates.Count > 0 ? discovery.Candidates[0] : null) ??
-            discovery.AllWindows.FirstOrDefault(candidate =>
-                candidate.IsWindow &&
-                !candidate.IsChildWindow &&
-                candidate.Width > 0 &&
-                candidate.Height > 0 &&
-                (candidate.IsVisible || candidate.IsMinimized));
+        var window = SelectWindow(discovery);
 
         if (window is null)
         {
@@ -325,9 +321,34 @@ public sealed class MonitoringCoordinator(
             return;
         }
 
-        var hasCallSignal = discovery.CallWindow is not null || window.CallSignalCount > 0;
+        var minimized = window.IsMinimized;
+        var hasCallSignal = HasLiveCallSignal(discovery, window);
+        if (hasCallSignal)
+        {
+            _callSignalLostAt = null;
+            if (discovery.CallWindow is { IsMinimized: false })
+            {
+                _currentCallWindowHwnd = discovery.CallWindow.Hwnd;
+            }
+        }
+
+        if (minimized && _currentCallId is not null && _lastResolved.Count > 0)
+        {
+            await HoldMinimizedAsync(now, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         if (!hasCallSignal)
         {
+            if (_currentCallId is not null && !minimized)
+            {
+                _callSignalLostAt ??= now;
+                if (now - _callSignalLostAt.Value >= TimeSpan.FromSeconds(settings.OfflineWaitSeconds))
+                {
+                    await CompleteCurrentCallAsync("CallEnded", cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             SetState(ConnectionState.CallNotDetected, "已连接");
             PublishSnapshot(now);
             return;
@@ -343,6 +364,12 @@ public sealed class MonitoringCoordinator(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            if (minimized && _lastResolved.Count > 0)
+            {
+                await HoldMinimizedAsync(now, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             windowLocator.RequestFullScan();
             await logger.WriteAsync(
                 DiagnosticLogLevel.Warning,
@@ -360,6 +387,13 @@ public sealed class MonitoringCoordinator(
             windowLocator.RequestFullScan();
         }
 
+        if (minimized && _lastResolved.Count > 0 &&
+            (detection.IsUiAutomationAccessDenied || !detection.IsParticipantListFound || detection.Participants.Count == 0))
+        {
+            await HoldMinimizedAsync(now, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         if (detection.IsUiAutomationAccessDenied)
         {
             await logger.WriteAsync(
@@ -374,6 +408,12 @@ public sealed class MonitoringCoordinator(
 
         if (!detection.IsParticipantListFound)
         {
+            if (minimized && _lastResolved.Count > 0)
+            {
+                await HoldMinimizedAsync(now, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             await logger.WriteAsync(
                 DiagnosticLogLevel.Information,
                 "monitoring.participants.missing",
@@ -395,6 +435,12 @@ public sealed class MonitoringCoordinator(
 
         if (detection.Participants.Count == 0)
         {
+            if (minimized && _lastResolved.Count > 0)
+            {
+                await HoldMinimizedAsync(now, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             // 参与者数量为 0 绝不能回退到未连接。
             SetState(ConnectionState.ParticipantReadingFailed, "正在读取参与者");
             PublishSnapshot(now);
@@ -407,6 +453,8 @@ public sealed class MonitoringCoordinator(
         if (_currentCallId is null)
         {
             _currentCallStartTime = now;
+            _currentCallWindowHwnd = window.Hwnd;
+            _callSignalLostAt = null;
             _currentCallId = await attendanceRepository.StartCallAsync(
                 now,
                 "Viber在线记录",
@@ -434,7 +482,68 @@ public sealed class MonitoringCoordinator(
                 observation.StableUiIdentity));
         }
 
-        var update = _tracker!.Apply(resolved, now);
+        if (minimized && _lastResolved.Count > 0)
+        {
+            resolved = MinimizedPresence.KeepKnownPeople(_lastResolved, resolved, now).ToList();
+        }
+
+        _lastResolved = resolved;
+        await ApplyObservationsAsync(resolved, now, cancellationToken).ConfigureAwait(false);
+        SetState(
+            ConnectionState.Monitoring,
+            minimized ? "Viber 最小化，名单在重新打开后核对" : "正在监控");
+        PublishSnapshot(now);
+    }
+
+    private async Task HoldMinimizedAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var held = MinimizedPresence.KeepKnownPeople(_lastResolved, [], now);
+        _lastResolved = held;
+        await ApplyObservationsAsync(held, now, cancellationToken).ConfigureAwait(false);
+        SetState(ConnectionState.Monitoring, "Viber 最小化，名单在重新打开后核对");
+        PublishSnapshot(now);
+    }
+
+    private ViberWindowCandidate? SelectWindow(ViberWindowDiscoveryResult discovery)
+    {
+        if (_currentCallWindowHwnd is long callHwnd)
+        {
+            var remembered = discovery.AllWindows.FirstOrDefault(candidate =>
+                candidate.Hwnd == callHwnd &&
+                candidate.IsWindow &&
+                !candidate.IsChildWindow &&
+                candidate.IsMinimized);
+            if (remembered is not null)
+            {
+                return remembered;
+            }
+        }
+
+        return discovery.CallWindow ?? discovery.MainWindow ??
+            (discovery.Candidates.Count > 0 ? discovery.Candidates[0] : null) ??
+            discovery.AllWindows.FirstOrDefault(candidate =>
+                candidate.IsWindow &&
+                !candidate.IsChildWindow &&
+                candidate.Width > 0 &&
+                candidate.Height > 0 &&
+                (candidate.IsVisible || candidate.IsMinimized));
+    }
+
+    private static bool HasLiveCallSignal(ViberWindowDiscoveryResult discovery, ViberWindowCandidate window) =>
+        discovery.CallWindow is { IsMinimized: false } ||
+        (!window.IsMinimized && window.CallSignalCount > 0);
+
+    private async Task ApplyObservationsAsync(
+        IReadOnlyList<ResolvedParticipantObservation> resolved,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (_tracker is null || _currentCallId is null)
+        {
+            return;
+        }
+
+        var update = _tracker.Apply(resolved, now);
         await PersistUpdateAsync(update, cancellationToken).ConfigureAwait(false);
         _participants = update.Participants;
         if (update.ChangedParticipants.Any(participant =>
@@ -442,9 +551,6 @@ public sealed class MonitoringCoordinator(
         {
             await PushSheetAsync(_currentCallId.Value, cancellationToken).ConfigureAwait(false);
         }
-
-        SetState(ConnectionState.Monitoring, "正在监控");
-        PublishSnapshot(now);
     }
 
     private void ApplyTemporaryFailure()
@@ -500,6 +606,9 @@ public sealed class MonitoringCoordinator(
         _tracker = null;
         _currentCallId = null;
         _currentCallStartTime = null;
+        _currentCallWindowHwnd = null;
+        _callSignalLostAt = null;
+        _lastResolved = [];
     }
 
     private async Task PushSheetAsync(Guid callId, CancellationToken cancellationToken)
@@ -565,6 +674,17 @@ public sealed class MonitoringCoordinator(
         var currentDuration = participant.OnlineAtUtc is DateTimeOffset onlineAt
             ? (participant.OfflineAtUtc ?? now) - onlineAt
             : TimeSpan.Zero;
+        if (currentDuration < TimeSpan.Zero)
+        {
+            currentDuration = TimeSpan.Zero;
+        }
+
+        var grown = currentDuration - participant.CurrentDuration;
+        if (grown < TimeSpan.Zero)
+        {
+            grown = TimeSpan.Zero;
+        }
+
         return new ParticipantRowViewModel(
             participant.MemberId,
             participant.DisplayName,
@@ -573,7 +693,7 @@ public sealed class MonitoringCoordinator(
             FormatLocalTime(participant.OfflineAtUtc),
             participant.State is MemberPresenceState.Online or MemberPresenceState.CandidateOffline,
             FormatDuration(currentDuration),
-            FormatDuration(participant.TotalDuration),
+            FormatDuration(participant.TotalDuration + grown),
             stateText,
             CustomNumberDirectory.Find(codes, participant.DisplayName));
     }
@@ -581,18 +701,19 @@ public sealed class MonitoringCoordinator(
     private static string FormatLocalTime(DateTimeOffset? value) =>
         value?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture) ?? "—";
 
-    private static string FormatDuration(TimeSpan value)
-    {
-        var totalHours = (int)Math.Floor(Math.Max(0, value.TotalHours));
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{totalHours:00}:{Math.Abs(value.Minutes):00}:{Math.Abs(value.Seconds):00}");
-    }
+    private static string FormatDuration(TimeSpan value) => DurationText.Format(value);
 
-    private static string EscapeCsv(string value) =>
-        value.ContainsAny([',', '"', '\r', '\n'])
+    private static string EscapeCsv(string value)
+    {
+        if (value.Length > 0 && value[0] is '=' or '@' or '\t' or '\r')
+        {
+            value = "'" + value;
+        }
+
+        return value.ContainsAny([',', '"', '\r', '\n'])
             ? $"\"{value.Replace("\"", "\"\"")}\""
             : value;
+    }
 
     public async ValueTask DisposeAsync()
     {

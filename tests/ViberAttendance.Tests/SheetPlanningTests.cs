@@ -38,6 +38,32 @@ public sealed class SheetPlanningTests
     }
 
     [Fact]
+    public void NamesThatDifferOnlyBySpacesUseTheSameSheetRow()
+    {
+        IReadOnlyList<IReadOnlyList<string>> rows =
+        [
+            ["姓名", "上线时间", "下线时间", "当前状态", "累计时长"],
+            ["张三", "", "", "", ""],
+            ["", "", "", "", ""]
+        ];
+        var person = new DetailSheetPerson("id", "张 三", "2026-11-17 19:01:00", "", "在线", "10分钟");
+
+        var plan = DetailSheetPlanner.Plan(rows, [person]);
+
+        Assert.Contains(plan.Cells, cell => cell.Row == 2 && cell.Column == 0 && cell.Value == "张 三");
+        Assert.DoesNotContain(plan.Cells, cell => cell.Row == 3);
+    }
+
+    [Fact]
+    public void ReadRangeCoversAColumnPastZ()
+    {
+        var settings = new SheetSyncSettings { DetailNameColumn = "AA" };
+
+        Assert.Equal(27, SheetColumns.ReadColumnCount(settings));
+        Assert.Equal("AA", SheetColumns.Letter(26));
+    }
+
+    [Fact]
     public void DetailSheetWritesIntoTheColumnsTheUserChose()
     {
         var settings = new SheetSyncSettings

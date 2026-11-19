@@ -9,7 +9,9 @@ namespace ViberAttendance.App.Services;
 
 public sealed class ScriptSheetGridClient(AppSettings settings) : ISheetGridClient
 {
-    private readonly HttpClient _http = new()
+    private readonly HttpClient _http = new(new AllowlistedRedirectHandler(
+        new SocketsHttpHandler { AllowAutoRedirect = false },
+        ["script.google.com", "script.googleusercontent.com"]))
     {
         Timeout = TimeSpan.FromSeconds(60)
     };
@@ -18,8 +20,15 @@ public sealed class ScriptSheetGridClient(AppSettings settings) : ISheetGridClie
         string spreadsheetUrl,
         string sheetName,
         CancellationToken cancellationToken = default) =>
+        ReadAsync(spreadsheetUrl, sheetName, 26, cancellationToken);
+
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        int columnCount,
+        CancellationToken cancellationToken = default) =>
         PostAsync(
-            ScriptSheetProtocol.CreateRead(spreadsheetUrl, sheetName),
+            ScriptSheetProtocol.CreateRead(spreadsheetUrl, sheetName, columnCount),
             ScriptSheetProtocol.ReadRows,
             cancellationToken);
 
@@ -44,8 +53,7 @@ public sealed class ScriptSheetGridClient(AppSettings settings) : ISheetGridClie
     private async Task<T> PostAsync<T>(string json, Func<string, T> read, CancellationToken cancellationToken)
     {
         var url = settings.SheetSync.ScriptWebAppUrl.Trim();
-        if (!url.StartsWith("https://script.google.com/", StringComparison.OrdinalIgnoreCase) ||
-            !url.Contains("/exec", StringComparison.OrdinalIgnoreCase))
+        if (!ScriptSheetProtocol.IsScriptExecUrl(url))
         {
             throw new InvalidOperationException("请填写部署后的网页应用网址，以 /exec 结尾。");
         }

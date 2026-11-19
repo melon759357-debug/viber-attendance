@@ -186,7 +186,7 @@ public sealed class AdvancedDiagnosticsViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception)
         {
-            LastError = exception.GetType().Name + ": " + exception.Message;
+            LastError = DiagnosticText.Sanitize(exception.GetType().Name + ": " + exception.Message);
             StatusMessage = "完整诊断失败，请查看本地日志。";
             ConnectionStateText = ConnectionState.DetectionTemporarilyFailed.ToString();
         }
@@ -307,7 +307,7 @@ public sealed class AdvancedDiagnosticsViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception)
         {
-            LastError = exception.GetType().Name + ": " + exception.Message;
+            LastError = DiagnosticText.Sanitize(exception.GetType().Name + ": " + exception.Message);
             StatusMessage = "窗口扫描失败。";
         }
         finally

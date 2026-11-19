@@ -4,7 +4,7 @@ namespace ViberAttendance.App.Services;
 
 public static class AppRelease
 {
-    public const string Version = "1.1.17";
+    public const string Version = "1.1.19";
     public const string FileName = "Viber在线记录.exe";
     public const string RepositoryLatest =
         "https://api.github.com/repos/melon759357-debug/viber-attendance/releases/latest";
@@ -58,10 +58,10 @@ public static class AppRelease
         return System.Version.TryParse(value, out version!);
     }
 
-    public static string? ChooseDownload(IEnumerable<(string Name, string Url)> assets)
+    public static (string Url, string? Digest)? ChooseDownload(IEnumerable<(string Name, string Url, string? Digest)> assets)
     {
-        string? zip = null;
-        string? exe = null;
+        (string Url, string? Digest)? zip = null;
+        (string Url, string? Digest)? exe = null;
         foreach (var asset in assets)
         {
             if (!IsGitHubDownload(asset.Url))
@@ -71,11 +71,11 @@ public static class AppRelease
 
             if (zip is null && asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             {
-                zip = asset.Url;
+                zip = (asset.Url, asset.Digest);
             }
-            else if (exe is null && asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            else if (exe is null && asset.Name.Equals(FileName, StringComparison.OrdinalIgnoreCase))
             {
-                exe = asset.Url;
+                exe = (asset.Url, asset.Digest);
             }
         }
 
@@ -83,9 +83,14 @@ public static class AppRelease
     }
 
     public static bool IsGitHubDownload(string? url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && IsGitHubUpdateHost(uri);
+
+    public static bool IsGitHubUpdateHost(Uri? uri) =>
+        uri is { IsAbsoluteUri: true } &&
         uri.Scheme == Uri.UriSchemeHttps &&
-        (uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) ||
+        (uri.Host.Equals("api.github.com", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) ||
          uri.Host.Equals("objects.githubusercontent.com", StringComparison.OrdinalIgnoreCase) ||
-         uri.Host.Equals("release-assets.githubusercontent.com", StringComparison.OrdinalIgnoreCase));
+         uri.Host.Equals("release-assets.githubusercontent.com", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.Equals("github-releases.githubusercontent.com", StringComparison.OrdinalIgnoreCase));
 }

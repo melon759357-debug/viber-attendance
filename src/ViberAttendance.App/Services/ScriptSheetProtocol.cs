@@ -20,19 +20,23 @@ public static partial class ScriptSheetProtocol
               return respond_({ ok: false, error: "找不到工作表" });
             }
             if (body.action === "read") {
-              return respond_({ ok: true, rows: readRows_(sheet) });
+              return respond_({ ok: true, rows: readRows_(sheet, body.endColumn) });
             }
             if (body.action === "write") {
               var cells = body.cells || [];
               for (var i = 0; i < cells.length; i++) {
-                var value = cells[i].value == null ? "" : String(cells[i].value);
+                var value = asPlainText_(cells[i].value);
                 var cell = sheet.getRange(cells[i].row, cells[i].column + 1);
                 cell.setNumberFormat("@");
                 cell.setValue(value);
               }
               var colors = body.colors || [];
               for (var j = 0; j < colors.length; j++) {
-                sheet.getRange(colors[j].row, colors[j].column + 1).setBackground(colors[j].hex);
+                var hex = String(colors[j].hex || "");
+                if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                  continue;
+                }
+                sheet.getRange(colors[j].row, colors[j].column + 1).setBackground(hex);
               }
               return respond_({ ok: true });
             }
@@ -44,12 +48,22 @@ public static partial class ScriptSheetProtocol
           }
         }
 
-        function readRows_(sheet) {
+        function asPlainText_(value) {
+          var text = value == null ? "" : String(value);
+          var first = text.charAt(0);
+          if (first === "=" || first === "@" || first === "\t" || first === "\r") {
+            return "'" + text;
+          }
+          return text;
+        }
+
+        function readRows_(sheet, endColumn) {
           var lastRow = sheet.getLastRow();
           if (lastRow < 1) {
             return [];
           }
-          return sheet.getRange(1, 1, lastRow, 26).getDisplayValues().map(function (row) {
+          var width = Math.max(26, Number(endColumn) || 26);
+          return sheet.getRange(1, 1, lastRow, width).getDisplayValues().map(function (row) {
             return row.map(function (cell) { return String(cell); });
           });
         }
@@ -61,12 +75,13 @@ public static partial class ScriptSheetProtocol
         }
         """;
 
-    public static string CreateRead(string spreadsheetUrl, string sheetName) =>
+    public static string CreateRead(string spreadsheetUrl, string sheetName, int columnCount = 26) =>
         JsonSerializer.Serialize(new
         {
             action = "read",
             spreadsheetUrl,
-            sheetName
+            sheetName,
+            endColumn = Math.Max(columnCount, 26)
         });
 
     public static string CreateWrite(
@@ -79,9 +94,31 @@ public static partial class ScriptSheetProtocol
             action = "write",
             spreadsheetUrl,
             sheetName,
-            cells = cells.Select(cell => new { row = cell.Row, column = cell.Column, value = cell.Value }),
+            cells = cells.Select(cell => new { row = cell.Row, column = cell.Column, value = AsPlainText(cell.Value) }),
             colors = colors.Select(color => new { row = color.Row, column = color.Column, hex = color.Hex })
         });
+
+    public static bool IsScriptExecUrl(string? url)
+    {
+        if (!Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        return uri.Scheme == Uri.UriSchemeHttps &&
+               uri.Host.Equals("script.google.com", StringComparison.OrdinalIgnoreCase) &&
+               uri.AbsolutePath.Contains("/exec", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string AsPlainText(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value[0] is '=' or '@' or '\t' or '\r' ? "'" + value : value;
+    }
 
     public static IReadOnlyList<IReadOnlyList<string>> ReadRows(string body)
     {

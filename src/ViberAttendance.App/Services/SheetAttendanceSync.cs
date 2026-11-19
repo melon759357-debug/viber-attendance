@@ -176,7 +176,7 @@ public sealed class SheetAttendanceSync(
         CancellationToken cancellationToken)
     {
         var sheet = settings.SheetSync;
-        var grid = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
+        var grid = await ReadGridAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
         var columns = DetailSheetColumns.From(sheet);
         var codes = CustomNumberDirectory.Index(sheet.CustomNumbers);
@@ -188,7 +188,7 @@ public sealed class SheetAttendanceSync(
             [],
             cancellationToken).ConfigureAwait(false);
 
-        var verify = await sheetClient.ReadAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
+        var verify = await ReadGridAsync(sheet.DetailSpreadsheetUrl, sheet.DetailSheetName, cancellationToken)
             .ConfigureAwait(false);
         var missing = AttendanceSheetRows.CollapseByName(people)
             .Where(person => !ContainsName(verify, person.Name, columns.Name))
@@ -265,13 +265,82 @@ public sealed class SheetAttendanceSync(
         }
     }
 
+    public async Task<string> RefreshCustomNumbersAsync(CancellationToken cancellationToken = default)
+    {
+        var sheet = settings.SheetSync;
+        var live = sheet.DetailEnabled && sheet.DetailCodeEnabled && !string.IsNullOrWhiteSpace(sheet.DetailSpreadsheetUrl)
+            ? await PushHistoryAsync(cancellationToken).ConfigureAwait(false)
+            : "实时表格这次没有写号码。";
+
+        if (!sheet.TimeEnabled || !sheet.TimeCodeEnabled || string.IsNullOrWhiteSpace(sheet.TimeSpreadsheetUrl))
+        {
+            return live + "最终表格这次没有写号码。";
+        }
+
+        if (!SheetColumns.TryParse(sheet.NameColumn, out var nameColumn) ||
+            !SheetColumns.TryParse(sheet.TimeCodeColumn, out var codeColumn) ||
+            codeColumn == nameColumn ||
+            (SheetColumns.TryParse(sheet.TimeColumn, out var timeColumn) && codeColumn == timeColumn))
+        {
+            return live + "最终表格的号码列和姓名或时间列撞在一起，没有写。";
+        }
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var grid = await ReadGridAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cancellationToken)
+                .ConfigureAwait(false);
+            var codes = CustomNumberDirectory.Index(sheet.CustomNumbers);
+            var cells = new List<SheetCell>();
+            for (var row = sheet.StartRow; row <= sheet.EndRow; row++)
+            {
+                var line = row - 1;
+                var name = line >= 0 && line < grid.Count && nameColumn < grid[line].Count
+                    ? grid[line][nameColumn]
+                    : string.Empty;
+                if (CustomNumberDirectory.Key(name).Length == 0)
+                {
+                    continue;
+                }
+
+                cells.Add(new SheetCell(row, codeColumn, CustomNumberDirectory.Find(codes, name)));
+            }
+
+            if (cells.Count == 0)
+            {
+                return live + "最终表格里没有已有的人，号码没有写。";
+            }
+
+            await sheetClient.WriteAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cells, [], cancellationToken)
+                .ConfigureAwait(false);
+            return live + "最终表格里已有的人已补上号码，时间格子没有改。";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            await logger.WriteAsync(
+                DiagnosticLogLevel.Warning,
+                "sheet.numbers.failed",
+                $"自定义号码没有写进最终表格：{exception.GetType().Name}",
+                cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            return live + "最终表格这次没有写上。";
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     private async Task<(int Written, int Overflow)> WriteTimeAsync(
         IReadOnlyList<AttendanceIntervalRecord> intervals,
         CancellationToken cancellationToken)
     {
         var people = AttendanceSheetRows.BuildTime(intervals);
         var sheet = settings.SheetSync;
-        var grid = await sheetClient.ReadAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cancellationToken)
+        var grid = await ReadGridAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cancellationToken)
             .ConfigureAwait(false);
         var plan = TimeSheetPlanner.Plan(grid, sheet, people);
         await sheetClient.WriteAsync(
@@ -282,10 +351,14 @@ public sealed class SheetAttendanceSync(
             cancellationToken).ConfigureAwait(false);
         if (plan.OverflowNames.Count == 0)
         {
-            var verify = await sheetClient.ReadAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cancellationToken)
+            var verify = await ReadGridAsync(sheet.TimeSpreadsheetUrl, sheet.TimeSheetName, cancellationToken)
                 .ConfigureAwait(false);
             var names = NamesInRange(verify, sheet);
-            if (people.Any(person => !names.Contains(person.Name.Trim())))
+            if (people.Any(person =>
+                {
+                    var key = CustomNumberDirectory.Key(person.Name);
+                    return key.Length > 0 && !names.Contains(key);
+                }))
             {
                 var retry = TimeSheetPlanner.Plan(verify, sheet, people);
                 await sheetClient.WriteAsync(
@@ -345,8 +418,23 @@ public sealed class SheetAttendanceSync(
         settings.SheetSync.Enabled &&
         (settings.SheetSync.DetailEnabled || settings.SheetSync.TimeEnabled);
 
-    private static bool ContainsName(IReadOnlyList<IReadOnlyList<string>> rows, string name, int column) =>
-        rows.Any(row => column < row.Count && string.Equals(row[column].Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+    private Task<IReadOnlyList<IReadOnlyList<string>>> ReadGridAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        CancellationToken cancellationToken) =>
+        sheetClient.ReadAsync(
+            spreadsheetUrl,
+            sheetName,
+            SheetColumns.ReadColumnCount(settings.SheetSync),
+            cancellationToken);
+
+    private static bool ContainsName(IReadOnlyList<IReadOnlyList<string>> rows, string name, int column)
+    {
+        var key = CustomNumberDirectory.Key(name);
+        return key.Length > 0 && rows.Any(row =>
+            column < row.Count &&
+            string.Equals(CustomNumberDirectory.Key(row[column]), key, StringComparison.OrdinalIgnoreCase));
+    }
 
     private static HashSet<string> NamesInRange(IReadOnlyList<IReadOnlyList<string>> rows, SheetSyncSettings sheet)
     {
@@ -355,9 +443,15 @@ public sealed class SheetAttendanceSync(
         for (var row = sheet.StartRow; row <= sheet.EndRow && row - 1 < rows.Count; row++)
         {
             var line = rows[row - 1];
-            if (column < line.Count && !string.IsNullOrWhiteSpace(line[column]))
+            if (column >= line.Count)
             {
-                names.Add(line[column].Trim());
+                continue;
+            }
+
+            var key = CustomNumberDirectory.Key(line[column]);
+            if (key.Length > 0)
+            {
+                names.Add(key);
             }
         }
 

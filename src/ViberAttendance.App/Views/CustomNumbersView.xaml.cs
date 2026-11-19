@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using ViberAttendance.App.ViewModels;
 
 namespace ViberAttendance.App.Views;
@@ -12,14 +13,25 @@ public partial class CustomNumbersView : UserControl
         InitializeComponent();
     }
 
-    private void CustomNumbers_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    private int _rememberQueued;
+
+    private void CustomNumbers_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
     {
         if (e.EditAction != DataGridEditAction.Commit || DataContext is not SettingsViewModel settings)
         {
             return;
         }
 
-        Dispatcher.BeginInvoke(new Action(() => _ = settings.RememberCustomNumbersAsync()));
+        _rememberQueued++;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (--_rememberQueued > 0)
+            {
+                return;
+            }
+
+            _ = settings.RememberCustomNumbersAsync();
+        }), DispatcherPriority.ContextIdle);
     }
 
     private void CustomNumbers_PreviewKeyDown(object sender, KeyEventArgs e)

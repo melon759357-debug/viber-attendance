@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Windows.Input;
 using ViberAttendance.App.Commands;
 using ViberAttendance.App.Services;
+using ViberAttendance.Core.Attendance;
 using ViberAttendance.Core.Configuration;
 using ViberAttendance.Core.Contracts;
 using ViberAttendance.Core.Models;
@@ -46,6 +47,7 @@ public sealed class HistoryViewModel : ObservableObject
         WriteIndented = true
     };
     private readonly Dictionary<Guid, string> _participantSearchIndex = [];
+    private readonly Dictionary<Guid, string[]> _participantNames = [];
     private CallHistoryRowViewModel? _selectedRecord;
     private HistoryIntervalRowViewModel? _selectedInterval;
     private string _statusMessage = "选择一场通话。";
@@ -165,6 +167,7 @@ public sealed class HistoryViewModel : ObservableObject
         var records = await _repository.GetCallsAsync().ConfigureAwait(true);
         Records.Clear();
         _participantSearchIndex.Clear();
+        _participantNames.Clear();
         foreach (var record in records)
         {
             var row = new CallHistoryRowViewModel(
@@ -180,12 +183,14 @@ public sealed class HistoryViewModel : ObservableObject
             Records.Add(row);
 
             var intervals = await _repository.GetCallIntervalsAsync(record.CallId).ConfigureAwait(true);
-            _participantSearchIndex[record.CallId] = string.Join(
-                ' ',
-                intervals
-                    .SelectMany(interval => new[] { interval.DisplayName, interval.StableUiIdentity })
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Distinct(StringComparer.CurrentCultureIgnoreCase));
+            var names = intervals
+                .SelectMany(interval => new[] { interval.DisplayName, interval.StableUiIdentity })
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
+            _participantNames[record.CallId] = names;
+            _participantSearchIndex[record.CallId] = SearchTextFor(names);
         }
 
         _forceDetailLoad = true;
@@ -265,7 +270,26 @@ public sealed class HistoryViewModel : ObservableObject
         }
     }
 
-    internal void RefreshMatchedNumbers() => ScheduleDetailLoad();
+    internal void RefreshMatchedNumbers()
+    {
+        foreach (var pair in _participantNames)
+        {
+            _participantSearchIndex[pair.Key] = SearchTextFor(pair.Value);
+        }
+
+        ApplyFilter();
+        ScheduleDetailLoad();
+    }
+
+    private string SearchTextFor(IEnumerable<string> names)
+    {
+        var codes = CustomNumberDirectory.Index(_settings.SheetSync.CustomNumbers);
+        return string.Join(
+            ' ',
+            names.SelectMany(name => new[] { name, CustomNumberDirectory.Find(codes, name) })
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.CurrentCultureIgnoreCase));
+    }
 
     private void ScheduleDetailLoad() => _detailLoad = LoadSelectedDetailsAsync();
 
@@ -461,9 +485,5 @@ public sealed class HistoryViewModel : ObservableObject
         StatusMessage = "这段记录已删除。";
     }
 
-    private static string FormatDuration(TimeSpan value)
-    {
-        var hours = (int)Math.Floor(Math.Max(0, value.TotalHours));
-        return string.Create(CultureInfo.InvariantCulture, $"{hours:00}:{value.Minutes:00}:{value.Seconds:00}");
-    }
+    private static string FormatDuration(TimeSpan value) => DurationText.Format(value);
 }

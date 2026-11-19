@@ -136,7 +136,7 @@ public partial class App : Application
         catch (Exception exception)
         {
             MessageBox.Show(
-                $"ViberAttendance 启动失败。\n\n{exception.GetType().Name}: {exception.Message}",
+                $"ViberAttendance 启动失败。\n\n{exception.GetType().Name}: {DiagnosticText.Sanitize(exception.Message)}",
                 "启动失败",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

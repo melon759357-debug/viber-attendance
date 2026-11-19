@@ -77,9 +77,9 @@ public sealed class SimpleUiContractTests
     {
         var xaml = File.ReadAllText(FindAppFile("MainWindow.xaml"));
 
-        Assert.Contains("Width=\"208\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinWidth=\"850\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinHeight=\"560\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"200\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MinWidth=\"720\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MinHeight=\"480\"", xaml, StringComparison.Ordinal);
         Assert.Contains("NavigationButtonStyle", xaml, StringComparison.Ordinal);
         Assert.Contains("ContentOnlyTabControlStyle", xaml, StringComparison.Ordinal);
         Assert.Contains("SelectedIndex=\"0\"", xaml, StringComparison.Ordinal);

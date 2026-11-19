@@ -1,10 +1,9 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using ViberAttendance.Core.Contracts;
 
 namespace ViberAttendance.Infrastructure;
 
-public sealed partial class PrivacyFileLogger(
+public sealed class PrivacyFileLogger(
     ApplicationPaths paths,
     IClock clock,
     ViberAttendance.Core.Configuration.AppSettings settings) : IDiagnosticLogger, IDisposable
@@ -31,10 +30,10 @@ public sealed partial class PrivacyFileLogger(
         {
             timestampUtc = clock.UtcNow,
             level = level.ToString(),
-            eventName = Sanitize(eventName),
-            message = Sanitize(message),
+            eventName = DiagnosticText.Sanitize(eventName),
+            message = DiagnosticText.Sanitize(message),
             exceptionType = exception?.GetType().FullName,
-            exceptionMessage = exception is null ? null : Sanitize(exception.Message)
+            exceptionMessage = exception is null ? null : DiagnosticText.Sanitize(exception.Message)
         };
 
         var line = JsonSerializer.Serialize(entry) + Environment.NewLine;
@@ -63,18 +62,6 @@ public sealed partial class PrivacyFileLogger(
         GC.SuppressFinalize(this);
     }
 
-    private static string Sanitize(string value)
-    {
-        var text = EmailPattern().Replace(value ?? string.Empty, "<redacted-email>");
-        text = PhonePattern().Replace(text, "<redacted-phone>");
-        return text.Length <= 4_000 ? text : text[..4_000] + "…<truncated>";
-    }
-
-    [GeneratedRegex(@"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex EmailPattern();
-
-    [GeneratedRegex(@"(?<!\w)\+?\d[\d\s().-]{7,}\d(?!\w)", RegexOptions.CultureInvariant)]
-    private static partial Regex PhonePattern();
 }
 
 public sealed class NullDiagnosticLogger : IDiagnosticLogger

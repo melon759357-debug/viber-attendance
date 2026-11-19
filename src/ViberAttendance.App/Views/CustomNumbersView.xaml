@@ -41,13 +41,13 @@
         <TextBlock Grid.Row="2" Margin="0,0,0,8" Style="{StaticResource CaptionTextStyle}" Text="{Binding StatusMessage}" />
 
         <controls:ShrinkToContent Grid.Row="3" VerticalAlignment="Top">
-            <DataGrid ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}"
+            <DataGrid x:Name="NumberGrid" ItemsSource="{Binding CustomNumbers}" SelectedItem="{Binding SelectedCustomNumber}"
                       AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="True" CanUserDeleteRows="False"
                       HeadersVisibility="Column" SelectionUnit="Cell" GridLinesVisibility="All"
                       VerticalAlignment="Top"
                       BorderThickness="1" BorderBrush="{DynamicResource DividerBrush}"
                       HorizontalGridLinesBrush="{DynamicResource DividerBrush}" VerticalGridLinesBrush="{DynamicResource DividerBrush}"
-                      CellEditEnding="CustomNumbers_CellEditEnding" PreviewKeyDown="CustomNumbers_PreviewKeyDown"
+                      RowEditEnding="CustomNumbers_RowEditEnding" PreviewKeyDown="CustomNumbers_PreviewKeyDown"
                       ScrollViewer.CanContentScroll="False"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <DataGrid.RowStyle>

@@ -252,6 +252,30 @@ public static class SheetColumns
         return letters;
     }
 
+    public static int ReadColumnCount(SheetSyncSettings settings)
+    {
+        var furthest = 25;
+        void Take(string? text)
+        {
+            if (TryParse(text ?? string.Empty, out var index))
+            {
+                furthest = Math.Max(furthest, index);
+            }
+        }
+
+        Take(settings.DetailNameColumn);
+        Take(settings.DetailOnlineColumn);
+        Take(settings.DetailOfflineColumn);
+        Take(settings.DetailStatusColumn);
+        Take(settings.DetailDurationColumn);
+        Take(settings.DetailCodeColumn);
+        Take(settings.NameColumn);
+        Take(settings.TimeColumn);
+        Take(settings.TimeCodeColumn);
+        Take(settings.NoteColumn);
+        return furthest + 1;
+    }
+
     public static string Cell(string sheetName, int row, int column)
     {
         var letter = Letter(column);

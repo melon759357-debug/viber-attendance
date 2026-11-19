@@ -198,6 +198,7 @@ public sealed class ViberWindowLocator(
 
         var evaluated = new ViberWindowEvaluator(settings.WindowMinimumWidth, settings.WindowMinimumHeight)
             .Evaluate(processes, snapshots);
+        evaluated = KeepMinimizedCallWindow(evaluated, snapshots, lastCallWindow);
 
         lock (_scanStateGate)
         {
@@ -208,7 +209,8 @@ public sealed class ViberWindowLocator(
             }
 
             _lastLayouts = layouts;
-            _lastCallWindowHwnd = evaluated.CallWindow?.Hwnd;
+            _lastCallWindowHwnd = evaluated.CallWindow?.Hwnd ??
+                RememberedMinimizedHwnd(snapshots, lastCallWindow);
             _lastSnapshots = snapshots
                 .GroupBy(snapshot => snapshot.Hwnd)
                 .ToDictionary(group => group.Key, group => group.First());
@@ -224,6 +226,33 @@ public sealed class ViberWindowLocator(
             _fullScanRequested = true;
         }
     }
+
+    private static ViberWindowDiscoveryResult KeepMinimizedCallWindow(
+        ViberWindowDiscoveryResult evaluated,
+        IReadOnlyList<WindowInspectionSnapshot> snapshots,
+        long? rememberedHwnd)
+    {
+        if (evaluated.CallWindow is not null || rememberedHwnd is not long hwnd ||
+            !IsMinimizedTopLevel(snapshots, hwnd))
+        {
+            return evaluated;
+        }
+
+        var candidate = evaluated.AllWindows.FirstOrDefault(window => window.Hwnd == hwnd);
+        return candidate is null ? evaluated : evaluated with { CallWindow = candidate };
+    }
+
+    private static long? RememberedMinimizedHwnd(
+        IReadOnlyList<WindowInspectionSnapshot> snapshots,
+        long? rememberedHwnd) =>
+        rememberedHwnd is long hwnd && IsMinimizedTopLevel(snapshots, hwnd) ? hwnd : null;
+
+    private static bool IsMinimizedTopLevel(IReadOnlyList<WindowInspectionSnapshot> snapshots, long hwnd) =>
+        snapshots.Any(snapshot =>
+            snapshot.Hwnd == hwnd &&
+            snapshot.IsWindow &&
+            !snapshot.IsChildWindow &&
+            snapshot.IsMinimized);
 
     private static bool SameLayouts(
         IReadOnlyDictionary<long, string> previous,
@@ -261,7 +290,8 @@ public sealed class ViberWindowLocator(
         var uia = UiaWindowProbe.Empty;
         if (canProbeUia)
         {
-            var (maxNodes, maxDepth) = isVisible
+            var iconic = NativeMethods.IsIconic(windowHandle);
+            var (maxNodes, maxDepth) = isVisible && !iconic
                 ? (Math.Max(settings.WindowDiscoveryUiaMaxNodes, 1_200), 16)
                 : (Math.Min(settings.WindowDiscoveryUiaMaxNodes, 80), 4);
             uia = ProbeUiAutomation(

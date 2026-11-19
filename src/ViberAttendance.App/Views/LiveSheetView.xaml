@@ -20,7 +20,7 @@
                         <CheckBox Margin="0,0,0,16" Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding Settings.SheetSync.DetailEnabled}" Content="写入实时表格" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="写入间隔（秒）" />
                         <TextBox Margin="0,0,0,6" Text="{Binding Settings.SheetSync.IntervalSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Margin="0,0,0,14" Style="{StaticResource CaptionTextStyle}" Text="最终表格也按这个间隔写入。有人上线或下线时会马上写一次。" />
+                        <TextBlock Margin="0,0,0,14" Style="{StaticResource CaptionTextStyle}" Text="这个间隔和有人上线或下线时，只写实时表格。最终表格在点击登记时写入。勾选导出自定义号码后，改号码只补最终表格里已有的人的号码。" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="表格链接" />
                         <TextBox Margin="0,0,0,12" Text="{Binding Settings.SheetSync.DetailSpreadsheetUrl, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Margin="0,0,0,7" FontWeight="SemiBold" Text="工作表名称" />

@@ -86,12 +86,12 @@
                                 <TextBlock Style="{StaticResource FieldLabelStyle}" Text="默认颜色" />
                                 <views:ColorChoice Color="{Binding SelectedScheme.DefaultColor, Mode=TwoWay}" />
                             </StackPanel>
-                            <StackPanel Width="200" Margin="0,0,12,10">
-                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="大于等于多少分钟" />
+                            <StackPanel Width="220" Margin="0,0,12,10">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="达到多少分钟才加前面的文字" />
                                 <TextBox Text="{Binding SelectedScheme.PrefixMinimumMinutes, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Width="240" Margin="0,0,12,10">
-                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="日期前面自动加的文字" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="日期前面的文字" />
                                 <TextBox Text="{Binding SelectedScheme.PrefixText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                         </WrapPanel>
@@ -115,7 +115,7 @@
                             <Button Margin="0,0,8,8" Content="添加档位" Command="{Binding AddTierCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                             <Button Margin="0,0,8,8" Content="删除最后一档" Command="{Binding RemoveTierCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="符号按你输入的原样写入。时长写成 120分钟。达到上面的分钟数时，文字加在日期前面。示例：优秀 11/18 ★ 120分钟 VB 上线 19:01 下线 21:01" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="日期前面的文字有条件：只有时长达到上面填写的分钟数才加，不到就不加。符号档位是另一套条件。时长写成 120分钟。示例：优秀 11/18 ★ 120分钟 VB 上线 19:01 下线 21:01" />
                     </StackPanel>
                 </Border>
 

@@ -89,10 +89,37 @@ internal static class NativeMethods
         return copied > 0 ? new string(buffer, 0, copied) : string.Empty;
     }
 
-    internal static PixelRect ReadBounds(nint windowHandle) =>
-        GetWindowRect(windowHandle, out var rectangle)
+    internal static PixelRect ReadBounds(nint windowHandle)
+    {
+        if (IsIconic(windowHandle))
+        {
+            var restored = ReadRestoredBounds(windowHandle);
+            if (restored.Width > 0 && restored.Height > 0)
+            {
+                return restored;
+            }
+        }
+
+        return GetWindowRect(windowHandle, out var rectangle)
             ? new PixelRect(rectangle.Left, rectangle.Top, rectangle.Right - rectangle.Left, rectangle.Bottom - rectangle.Top)
             : new PixelRect(0, 0, 0, 0);
+    }
+
+    private static PixelRect ReadRestoredBounds(nint windowHandle)
+    {
+        var placement = new WindowPlacement { Length = Marshal.SizeOf<WindowPlacement>() };
+        if (!GetWindowPlacement(windowHandle, ref placement))
+        {
+            return new PixelRect(0, 0, 0, 0);
+        }
+
+        var rectangle = placement.NormalPosition;
+        return new PixelRect(
+            rectangle.Left,
+            rectangle.Top,
+            Math.Max(0, rectangle.Right - rectangle.Left),
+            Math.Max(0, rectangle.Bottom - rectangle.Top));
+    }
 
     internal static (int Width, int Height) ReadClientSize(nint windowHandle) =>
         GetClientRect(windowHandle, out var rectangle)
@@ -115,6 +142,28 @@ internal static class NativeMethods
             DwmwaCloaked,
             out var cloaked,
             Marshal.SizeOf<int>()) == 0 && cloaked != 0;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowPlacement(nint windowHandle, ref WindowPlacement placement);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        internal int X;
+        internal int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPlacement
+    {
+        internal int Length;
+        internal int Flags;
+        internal int ShowCmd;
+        internal NativePoint MinPosition;
+        internal NativePoint MaxPosition;
+        internal NativeRect NormalPosition;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct NativeRect

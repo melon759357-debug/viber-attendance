@@ -305,16 +305,26 @@ public sealed class AttendanceRepository(AppSettings settings) : IAttendanceRepo
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
+            var onlineAt = reader.IsDBNull(4) ? (DateTimeOffset?)null : Parse(reader.GetString(4));
+            var offlineAt = reader.IsDBNull(6) ? (DateTimeOffset?)null : Parse(reader.GetString(6));
+            var duration = offlineAt is null && onlineAt is DateTimeOffset online
+                ? DateTimeOffset.UtcNow - online
+                : TimeSpan.FromMilliseconds(reader.GetInt64(7));
+            if (duration < TimeSpan.Zero)
+            {
+                duration = TimeSpan.Zero;
+            }
+
             result.Add(new AttendanceIntervalRecord(
                 Guid.Parse(reader.GetString(0)),
                 callId,
                 Guid.Parse(reader.GetString(1)),
                 reader.GetString(2),
                 Parse(reader.GetString(3)),
-                reader.IsDBNull(4) ? null : Parse(reader.GetString(4)),
+                onlineAt,
                 Parse(reader.GetString(5)),
-                reader.IsDBNull(6) ? null : Parse(reader.GetString(6)),
-                TimeSpan.FromMilliseconds(reader.GetInt64(7)),
+                offlineAt,
+                duration,
                 reader.GetString(8),
                 reader.IsDBNull(9) ? null : reader.GetString(9)));
         }

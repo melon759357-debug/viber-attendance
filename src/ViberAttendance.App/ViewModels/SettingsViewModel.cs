@@ -24,6 +24,7 @@ public sealed class SettingsViewModel : ObservableObject
     private int _versionClickCount;
     private DateTimeOffset _lastVersionClick;
     private string _statusMessage = "设置会保存在本机。";
+    private string _lastSheetNote = string.Empty;
     private bool _isAdvancedDiagnosticsUnlocked;
     private readonly string _versionText = $"版本 {AppRelease.Version}";
     private readonly string _initialDatabasePath;
@@ -313,7 +314,7 @@ public sealed class SettingsViewModel : ObservableObject
                 return;
             }
 
-            StatusMessage = "已导入实时和最终的设置。表格链接没有改动。";
+            StatusMessage = WithSheetNote("已导入实时和最终的设置。表格链接没有改动。");
         }
         catch (Exception)
         {
@@ -375,7 +376,7 @@ public sealed class SettingsViewModel : ObservableObject
             return;
         }
 
-        StatusMessage = "已添加。同名的人会改成新号码。";
+        StatusMessage = WithSheetNote("已添加。同名的人会改成新号码。");
     }
 
     private async Task ApplyCustomNumbersAsync(bool fromClipboard)
@@ -406,7 +407,7 @@ public sealed class SettingsViewModel : ObservableObject
             return;
         }
 
-        StatusMessage = $"已读入 {parsed.Count} 行，现在共有 {merged.Count} 个自定义号码。";
+        StatusMessage = WithSheetNote($"已读入 {parsed.Count} 行，现在共有 {merged.Count} 个自定义号码。");
     }
 
     private async Task RemoveCustomNumberAsync()
@@ -423,7 +424,7 @@ public sealed class SettingsViewModel : ObservableObject
             return;
         }
 
-        StatusMessage = "已删除这个号码。";
+        StatusMessage = WithSheetNote("已删除这个号码。");
     }
 
     private async Task ClearCustomNumbersAsync()
@@ -434,7 +435,7 @@ public sealed class SettingsViewModel : ObservableObject
             return;
         }
 
-        StatusMessage = "自定义号码已清空。";
+        StatusMessage = WithSheetNote("自定义号码已清空。");
     }
 
     public async Task RememberCustomNumbersAsync()
@@ -458,6 +459,9 @@ public sealed class SettingsViewModel : ObservableObject
 
             await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
             CustomNumbersChanged?.Invoke(this, EventArgs.Empty);
+            var saved = DescribeSavedNumbers(pending.Count > 0);
+            _lastSheetNote = await _sheetSync.RefreshCustomNumbersAsync().ConfigureAwait(true);
+            StatusMessage = saved + _lastSheetNote;
         }
         catch (Exception)
         {
@@ -472,10 +476,12 @@ public sealed class SettingsViewModel : ObservableObject
             PersistScheme();
             await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
             CustomNumbersChanged?.Invoke(this, EventArgs.Empty);
+            _lastSheetNote = await _sheetSync.RefreshCustomNumbersAsync().ConfigureAwait(true);
             return true;
         }
         catch (Exception)
         {
+            _lastSheetNote = string.Empty;
             StatusMessage = "自定义号码没有保存成功。";
             return false;
         }
@@ -708,6 +714,18 @@ public sealed class SettingsViewModel : ObservableObject
 
         return name;
     }
+
+    private string DescribeSavedNumbers(bool incomplete)
+    {
+        var count = _settings.SheetSync.CustomNumbers.Count;
+        var text = count == 0
+            ? "还没有完整的名字和号码。"
+            : $"已按名字对照 {count} 个号码。";
+        return incomplete ? text + "还有没填完的一行，这一行还没保存。" : text;
+    }
+
+    private string WithSheetNote(string message) =>
+        string.IsNullOrEmpty(_lastSheetNote) ? message : message + _lastSheetNote;
 
     private void RefreshAccountEmail()
     {

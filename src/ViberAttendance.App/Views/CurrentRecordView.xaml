@@ -88,7 +88,7 @@
                 </Grid>
             </Border>
 
-            <Border Width="240" Margin="0,0,12,12" Style="{StaticResource MetricCardStyle}">
+            <Border MinWidth="240" Margin="0,0,12,12" Style="{StaticResource MetricCardStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource IconTileStyle}">
@@ -97,7 +97,7 @@
                     </Border>
                     <StackPanel Grid.Column="1" Margin="12,1,0,0">
                         <TextBlock Style="{StaticResource MetricLabelStyle}" Text="本场时长" />
-                        <TextBlock FontSize="20" Style="{StaticResource MetricValueStyle}" Text="{Binding CurrentCallDuration}" />
+                        <TextBlock FontSize="20" Style="{StaticResource MetricValueStyle}" Text="{Binding CurrentCallDuration}" TextWrapping="NoWrap" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -200,8 +200,8 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="本段时长" Binding="{Binding CurrentDuration, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
-                        <DataGridTextColumn Header="累计时长" Binding="{Binding TotalDuration, Mode=OneWay}" Width="110" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" />
+                        <DataGridTextColumn Header="本段时长" Binding="{Binding CurrentDuration, Mode=OneWay}" Width="220" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" ElementStyle="{StaticResource DurationTextStyle}" />
+                        <DataGridTextColumn Header="累计时长" Binding="{Binding TotalDuration, Mode=OneWay}" Width="220" CellStyle="{StaticResource TimeCellStyle}" HeaderStyle="{StaticResource TimeHeaderStyle}" ElementStyle="{StaticResource DurationTextStyle}" />
                     </DataGrid.Columns>
                 </DataGrid>
 

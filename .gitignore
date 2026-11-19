@@ -13,3 +13,10 @@ TestResults/
 *.db-shm
 *.db-wal
 *.tmp
+.env
+.env.*
+!.env.example
+*.pem
+*service-account*.json
+credentials.json
+client_secret*.json

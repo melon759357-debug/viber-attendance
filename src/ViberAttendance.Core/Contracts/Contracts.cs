@@ -187,6 +187,13 @@ public interface ISheetGridClient
         string sheetName,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        int columnCount,
+        CancellationToken cancellationToken = default) =>
+        ReadAsync(spreadsheetUrl, sheetName, cancellationToken);
+
     Task WriteAsync(
         string spreadsheetUrl,
         string sheetName,
@@ -204,6 +211,11 @@ public interface ISheetAttendanceSync
     Task<string> PushHistoryAsync(CancellationToken cancellationToken = default);
     /// <summary>把当前或最近一场写入最终表格。返回给界面的说明不含链接。</summary>
     Task<string> RegisterTimeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>自定义号码变更后，把已勾选的号码列补进实时和最终里已经有的人。</summary>
+    Task<string> RefreshCustomNumbersAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(string.Empty);
+
     void Watch(Guid callId);
     void Unwatch();
 }

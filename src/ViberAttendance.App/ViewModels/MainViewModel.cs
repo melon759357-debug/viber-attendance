@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using ViberAttendance.App.Commands;
 using ViberAttendance.App.Services;
+using ViberAttendance.Core.Attendance;
 using ViberAttendance.Core.Models;
 
 namespace ViberAttendance.App.ViewModels;
@@ -361,20 +362,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         UpdateDerivedStatus();
     }
 
-    private void OnDurationTimerTick(object? sender, EventArgs e) => UpdateDuration(DateTimeOffset.UtcNow);
+    private void OnDurationTimerTick(object? sender, EventArgs e)
+    {
+        var now = DateTimeOffset.UtcNow;
+        UpdateDuration(now);
+        _coordinator.Republish();
+    }
 
     private void UpdateDuration(DateTimeOffset now)
     {
         CurrentCallDuration = _currentCallStartedAt is DateTimeOffset startedAt
-            ? FormatDuration(now - startedAt)
-            : "00:00:00";
+            ? DurationText.Format(now - startedAt)
+            : DurationText.Format(TimeSpan.Zero);
     }
 
-    private static string FormatDuration(TimeSpan value)
-    {
-        var hours = (int)Math.Floor(Math.Max(0, value.TotalHours));
-        return string.Create(CultureInfo.InvariantCulture, $"{hours:00}:{Math.Abs(value.Minutes):00}:{Math.Abs(value.Seconds):00}");
-    }
+    private static string FormatDuration(TimeSpan value) => DurationText.Format(value);
 
     public void Dispose()
     {

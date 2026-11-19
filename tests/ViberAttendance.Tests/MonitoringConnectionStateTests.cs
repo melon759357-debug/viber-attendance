@@ -200,13 +200,68 @@ public sealed class MonitoringConnectionStateTests
         Assert.Equal("viber-full-diagnostic-20260718-010203.json", name);
     }
 
+    [Fact]
+    public async Task MissingCallSignalEndsOnlyAfterTheWait()
+    {
+        var clock = new FakeClock();
+        var process = new ViberProcessInfo(1, "Viber", @"C:\Viber\Viber.exe", "Viber", "Viber", 0, "Viber", ["ProcessName"]);
+        var call = CreateWindow(10, callSignals: 3);
+        ViberWindowDiscoveryResult current = new(1, 1, 1, [process], [call], [call], call, call);
+        var locator = new MutableWindowLocator(() => current);
+        var detector = new CountingDetector(new ParticipantDetectionResult(
+            true,
+            [new ParticipantObservation("甲", "id", null, DetectionSource.UiAutomation, 0.9, clock.UtcNow)]));
+        await using var coordinator = CreateCoordinator(locator, detector, clock, fastScanSeconds: 30);
+
+        await coordinator.StartAsync();
+        await WaitForAsync(() => coordinator.CurrentCallId is not null);
+
+        var quiet = call with { CallSignalCount = 0, CandidateType = ViberWindowCandidateType.MainWindow };
+        current = new ViberWindowDiscoveryResult(1, 1, 1, [process], [quiet], [quiet], quiet, null);
+        await coordinator.RetryDetectionAsync();
+        Assert.NotNull(coordinator.CurrentCallId);
+
+        clock.UtcNow = clock.UtcNow.AddSeconds(6);
+        await coordinator.RetryDetectionAsync();
+        Assert.Null(coordinator.CurrentCallId);
+    }
+
+    [Fact]
+    public async Task MinimizedCallKeepsTheRosterWithoutReadingAgain()
+    {
+        var clock = new FakeClock();
+        var process = new ViberProcessInfo(1, "Viber", @"C:\Viber\Viber.exe", "Viber", "Viber", 0, "Viber", ["ProcessName"]);
+        var call = CreateWindow(10, callSignals: 3);
+        ViberWindowDiscoveryResult current = new(1, 1, 1, [process], [call], [call], call, call);
+        var locator = new MutableWindowLocator(() => current);
+        var detector = new CountingDetector(new ParticipantDetectionResult(
+            true,
+            [new ParticipantObservation("甲", "id", null, DetectionSource.UiAutomation, 0.9, clock.UtcNow)]));
+        await using var coordinator = CreateCoordinator(locator, detector, clock, fastScanSeconds: 30);
+
+        await coordinator.StartAsync();
+        await WaitForAsync(() => coordinator.CurrentCallId is not null);
+        var readsBeforeMinimize = detector.Calls;
+
+        var chat = CreateWindow(20, callSignals: 0);
+        var minimized = call with { IsMinimized = true, CallSignalCount = 0, CandidateType = ViberWindowCandidateType.MainWindow };
+        current = new ViberWindowDiscoveryResult(1, 2, 1, [process], [chat, minimized], [chat, minimized], chat, null);
+        clock.UtcNow = clock.UtcNow.AddSeconds(30);
+        await coordinator.RetryDetectionAsync();
+
+        Assert.NotNull(coordinator.CurrentCallId);
+        Assert.Equal(readsBeforeMinimize, detector.Calls);
+    }
+
     private static MonitoringCoordinator CreateCoordinator(
         IViberWindowLocator locator,
-        IUiAutomationParticipantDetector? detector = null)
+        IUiAutomationParticipantDetector? detector = null,
+        FakeClock? clock = null,
+        int fastScanSeconds = 1)
     {
         var settings = new AppSettings
         {
-            FastScanSeconds = 1,
+            FastScanSeconds = fastScanSeconds,
             OfflineWaitSeconds = 5,
             ExportFolder = Path.Combine(Path.GetTempPath(), "ViberAttendance.Tests", Guid.NewGuid().ToString("N"))
         };
@@ -215,7 +270,7 @@ public sealed class MonitoringConnectionStateTests
             locator,
             detector ?? new FakeParticipantDetector(new ParticipantDetectionResult(false, [])),
             new FakeAttendanceRepository(),
-            new FakeClock(),
+            clock ?? new FakeClock(),
             new FakeLogger());
     }
 
@@ -265,6 +320,25 @@ public sealed class MonitoringConnectionStateTests
         }
 
         Assert.True(condition(), "Condition was not met before timeout.");
+    }
+
+    private sealed class MutableWindowLocator(Func<ViberWindowDiscoveryResult> current) : IViberWindowLocator
+    {
+        public Task<ViberWindowDiscoveryResult> FindAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(current());
+    }
+
+    private sealed class CountingDetector(ParticipantDetectionResult result) : IUiAutomationParticipantDetector
+    {
+        public int Calls { get; private set; }
+
+        public Task<ParticipantDetectionResult> DetectAsync(
+            ViberWindowCandidate window,
+            CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class FakeWindowLocator(ViberWindowDiscoveryResult result) : IViberWindowLocator
@@ -364,7 +438,7 @@ public sealed class MonitoringConnectionStateTests
 
     private sealed class FakeClock : IClock
     {
-        public DateTimeOffset UtcNow { get; private set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset UtcNow { get; set; } = DateTimeOffset.UtcNow;
         public long GetMonotonicTimestamp() => UtcNow.UtcTicks;
         public TimeSpan GetElapsedTime(long startTimestamp, long endTimestamp) =>
             TimeSpan.FromTicks(endTimestamp - startTimestamp);

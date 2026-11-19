@@ -54,6 +54,19 @@ public sealed class ParticipantPresenceTrackerTests
     }
 
     [Fact]
+    public void LateConfirmationDoesNotBillTheGapAfterTheWait()
+    {
+        var tracker = CreateOnlineTracker();
+
+        var result = tracker.Apply([], Start.AddSeconds(20));
+
+        var participant = Assert.Single(result.Participants);
+        Assert.Equal(MemberPresenceState.Offline, participant.State);
+        Assert.Equal(Start.AddSeconds(7), participant.OfflineAtUtc);
+        Assert.Equal(TimeSpan.FromSeconds(5), participant.CurrentDuration);
+    }
+
+    [Fact]
     public void ParticipantReturningAfterOfflineCreatesNewInterval()
     {
         var tracker = CreateOnlineTracker();

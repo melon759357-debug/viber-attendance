@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -17,6 +18,16 @@ public enum StartupHandoff
 
 public static class AppUpdater
 {
+    public const long MaxUpdateBytes = 400L * 1024 * 1024;
+
+    private static readonly string[] UpdateHosts =
+    [
+        "api.github.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "github-releases.githubusercontent.com"
+    ];
     public static StartupHandoff HandoffToInstalledCopy(string processPath)
     {
         if (AppRelease.IsDevelopmentBuild(processPath) || AppRelease.IsRunningFromInstall(processPath))
@@ -57,7 +68,12 @@ public static class AppUpdater
 
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+            using var http = new HttpClient(new AllowlistedRedirectHandler(
+                new SocketsHttpHandler { AllowAutoRedirect = false },
+                UpdateHosts))
+            {
+                Timeout = TimeSpan.FromMinutes(3)
+            };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("ViberAttendance");
             http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             using var apiTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -79,7 +95,8 @@ public static class AppUpdater
 
             var downloads = assets.EnumerateArray().Select(asset => (
                 Name: asset.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
-                Url: asset.TryGetProperty("browser_download_url", out var url) ? url.GetString() ?? string.Empty : string.Empty));
+                Url: asset.TryGetProperty("browser_download_url", out var url) ? url.GetString() ?? string.Empty : string.Empty,
+                Digest: asset.TryGetProperty("digest", out var digest) ? digest.GetString() : null));
             var download = AppRelease.ChooseDownload(downloads);
             if (download is null)
             {
@@ -87,14 +104,15 @@ public static class AppUpdater
             }
 
             var downloaded = Path.Combine(Path.GetTempPath(), $"viber-update-{Guid.NewGuid():N}");
-            await using (var file = File.Create(downloaded))
+            if (!await SaveLimitedAsync(http, download.Value.Url, downloaded, cancellationToken).ConfigureAwait(false) ||
+                !DigestMatches(downloaded, download.Value.Digest))
             {
-                using var payload = await http.GetStreamAsync(download, cancellationToken).ConfigureAwait(false);
-                await payload.CopyToAsync(file, cancellationToken).ConfigureAwait(false);
+                TryDelete(downloaded);
+                return false;
             }
 
             var staged = AppRelease.InstallPath + ".new";
-            if (download.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            if (download.Value.Url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             {
                 if (!TryExtractExe(downloaded, staged))
                 {
@@ -133,9 +151,8 @@ public static class AppUpdater
     {
         using var archive = ZipFile.OpenRead(zipPath);
         var entry = archive.Entries.FirstOrDefault(item =>
-            item.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-            !item.FullName.Contains("..", StringComparison.Ordinal) &&
-            !Path.IsPathRooted(item.FullName));
+            item.FullName.Equals(AppRelease.FileName, StringComparison.Ordinal) &&
+            item.Length is > 0 and <= MaxUpdateBytes);
         if (entry is null)
         {
             return false;
@@ -143,6 +160,81 @@ public static class AppUpdater
 
         entry.ExtractToFile(destination, overwrite: true);
         return true;
+    }
+
+    private static async Task<bool> SaveLimitedAsync(
+        HttpClient http,
+        string url,
+        string destination,
+        CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode ||
+            response.Content.Headers.ContentLength is long advertised && advertised > MaxUpdateBytes)
+        {
+            return false;
+        }
+
+        await using var network = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var file = File.Create(destination);
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true)
+        {
+            var read = await network.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0)
+            {
+                break;
+            }
+
+            total += read;
+            if (total > MaxUpdateBytes)
+            {
+                return false;
+            }
+
+            await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        return total > 0;
+    }
+
+    private static bool DigestMatches(string path, string? digest)
+    {
+        if (string.IsNullOrWhiteSpace(digest))
+        {
+            return false;
+        }
+
+        const string prefix = "sha256:";
+        if (!File.Exists(path) ||
+            !digest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+            digest.Length != prefix.Length + 64)
+        {
+            return false;
+        }
+
+        using var stream = File.OpenRead(path);
+        var actual = Convert.ToHexString(SHA256.HashData(stream));
+        return actual.Equals(digest[prefix.Length..], StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void ScheduleReplace(int processId, string newPath, string targetPath)

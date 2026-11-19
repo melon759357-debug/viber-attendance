@@ -41,6 +41,13 @@ public sealed class LinkSheetGridClient : ISheetGridClient
         }
     }
 
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
+        string spreadsheetUrl,
+        string sheetName,
+        int columnCount,
+        CancellationToken cancellationToken = default) =>
+        ReadAsync(spreadsheetUrl, sheetName, cancellationToken);
+
     public async Task<IReadOnlyList<IReadOnlyList<string>>> ReadAsync(
         string spreadsheetUrl,
         string sheetName,

@@ -126,7 +126,13 @@ public static class AttendanceSheetRows
         var indexByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var person in people)
         {
-            var key = person.Name.Trim();
+            var key = CustomNumberDirectory.Key(person.Name);
+            if (key.Length == 0)
+            {
+                merged.Add(person);
+                continue;
+            }
+
             if (!indexByName.TryGetValue(key, out var index))
             {
                 indexByName[key] = merged.Count;
@@ -263,24 +269,29 @@ public static class DetailSheetPlanner
                 occupied.Add(rowNumber);
             }
 
-            var name = Cell(rows, index, columns.Name).Trim();
-            if (name.Length > 0)
+            var name = Cell(rows, index, columns.Name);
+            var key = CustomNumberDirectory.Key(name);
+            if (key.Length > 0)
             {
-                byName.TryAdd(name, rowNumber);
+                byName.TryAdd(key, rowNumber);
             }
         }
 
         var cursor = 1;
         foreach (var person in AttendanceSheetRows.CollapseByName(people))
         {
-            var key = person.Name.Trim();
-            var row = byName.TryGetValue(key, out var existing)
+            var key = CustomNumberDirectory.Key(person.Name);
+            var row = key.Length > 0 && byName.TryGetValue(key, out var existing)
                 ? existing
                 : NextEmpty(occupied, ref cursor);
-            if (!byName.ContainsKey(key))
+            if (key.Length > 0 && !byName.ContainsKey(key))
             {
                 occupied.Add(row);
                 byName[key] = row;
+            }
+            else if (key.Length == 0)
+            {
+                occupied.Add(row);
             }
 
             cells.Add(new SheetCell(row, columns.Name, person.Name));
@@ -337,14 +348,15 @@ public static class TimeSheetPlanner
         var empty = new List<int>();
         for (var row = settings.StartRow; row <= settings.EndRow; row++)
         {
-            var name = Cell(rows, row - 1, nameColumn).Trim();
-            if (name.Length == 0)
+            var name = Cell(rows, row - 1, nameColumn);
+            var key = CustomNumberDirectory.Key(name);
+            if (key.Length == 0)
             {
                 empty.Add(row);
             }
-            else if (!used.ContainsKey(name))
+            else if (!used.ContainsKey(key))
             {
-                used[name] = row;
+                used[key] = row;
             }
         }
 
@@ -354,17 +366,21 @@ public static class TimeSheetPlanner
         var emptyIndex = 0;
         foreach (var person in people)
         {
-            var key = person.Name.Trim();
+            var key = CustomNumberDirectory.Key(person.Name);
             int row;
             var isNew = false;
-            if (used.TryGetValue(key, out var existing))
+            if (key.Length > 0 && used.TryGetValue(key, out var existing))
             {
                 row = existing;
             }
             else if (emptyIndex < empty.Count)
             {
                 row = empty[emptyIndex++];
-                used[key] = row;
+                if (key.Length > 0)
+                {
+                    used[key] = row;
+                }
+
                 isNew = true;
             }
             else

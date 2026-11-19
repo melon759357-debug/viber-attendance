@@ -115,7 +115,7 @@
                             <DataGridTextColumn Header="日期" Binding="{Binding CallDate, Mode=OneWay}" Width="*" MinWidth="120" />
                             <DataGridTextColumn Header="开始" Binding="{Binding StartedAt, Mode=OneWay}" Width="96" />
                             <DataGridTextColumn Header="结束" Binding="{Binding EndedAt, Mode=OneWay}" Width="96" />
-                            <DataGridTextColumn Header="持续时长" Binding="{Binding TotalDuration, Mode=OneWay}" Width="104" />
+                            <DataGridTextColumn Header="持续时长" Binding="{Binding TotalDuration, Mode=OneWay}" Width="220" ElementStyle="{StaticResource DurationTextStyle}" />
                             <DataGridTextColumn Header="人数" Binding="{Binding ParticipantCount, Mode=OneWay}" Width="72" />
                             <DataGridTextColumn Header="状态" Binding="{Binding StatusText, Mode=OneWay}" Width="88" />
                         </DataGrid.Columns>
@@ -172,7 +172,7 @@
                             <DataGridTextColumn Header="内部编号" Binding="{Binding StableUiIdentity, Mode=OneWay}" Width="1.3*" MinWidth="120" />
                             <DataGridTextColumn Header="上线时间" Binding="{Binding OnlineAt, Mode=OneWay}" Width="104" />
                             <DataGridTextColumn Header="下线时间" Binding="{Binding OfflineAt, Mode=OneWay}" Width="104" />
-                            <DataGridTextColumn Header="在线时长" Binding="{Binding Duration, Mode=OneWay}" Width="104" />
+                            <DataGridTextColumn Header="在线时长" Binding="{Binding Duration, Mode=OneWay}" Width="220" ElementStyle="{StaticResource DurationTextStyle}" />
                             <DataGridTextColumn Header="状态" Binding="{Binding StatusText, Mode=OneWay}" Width="88" />
                         </DataGrid.Columns>
                     </DataGrid>
