@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using ViberAttendance.App.ViewModels;
 
 namespace ViberAttendance.App;
@@ -23,8 +22,8 @@ public partial class MainWindow : Window
         _settingsViewModel = settingsViewModel;
         _advancedDiagnosticsViewModel = advancedDiagnosticsViewModel;
         SheetSetupPanel.DataContext = settingsViewModel;
-        CustomNumbersPanel.DataContext = settingsViewModel;
         HistoryTab.DataContext = historyViewModel;
+        CustomNumbersTab.DataContext = settingsViewModel;
         LiveSheetTab.DataContext = settingsViewModel;
         FinalSheetTab.DataContext = settingsViewModel;
         SettingsTab.DataContext = settingsViewModel;
@@ -70,42 +69,6 @@ public partial class MainWindow : Window
         _historyViewModel.RefreshMatchedNumbers();
     }
 
-    private void CustomNumbers_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-    {
-        if (e.EditAction != DataGridEditAction.Commit)
-        {
-            return;
-        }
-
-        Dispatcher.BeginInvoke(new Action(() => _ = _settingsViewModel.RememberCustomNumbersAsync()));
-    }
-
-    private void CustomNumbers_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control)
-        {
-            return;
-        }
-
-        string? text;
-        try
-        {
-            text = Clipboard.ContainsText() ? Clipboard.GetText() : null;
-        }
-        catch (Exception)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(text) || (!text.Contains('\t') && !text.Contains('\n') && !text.Contains('\r')))
-        {
-            return;
-        }
-
-        e.Handled = true;
-        _settingsViewModel.PasteCustomNumbersCommand.Execute(null);
-    }
-
     private async void OnAdvancedDiagnosticsUnlocked(object? sender, EventArgs e)
     {
         AdvancedNavButton.Visibility = Visibility.Visible;
@@ -134,6 +97,9 @@ public partial class MainWindow : Window
             case "History":
                 MainTabs.SelectedItem = HistoryTab;
                 await _historyViewModel.RefreshAsync().ConfigureAwait(true);
+                break;
+            case "CustomNumbers":
+                MainTabs.SelectedItem = CustomNumbersTab;
                 break;
             case "LiveSheet":
                 MainTabs.SelectedItem = LiveSheetTab;
